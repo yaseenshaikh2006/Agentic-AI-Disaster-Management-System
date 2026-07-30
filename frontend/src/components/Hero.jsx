@@ -1,30 +1,27 @@
 function Hero() {
   return (
-    <section className="bg-slate-950 text-white min-h-[90vh] flex items-center">
+    <section className="bg-slate-950 text-white min-h-screen flex items-center">
       <div className="max-w-7xl mx-auto px-6">
-
-        <h1 className="text-6xl font-bold leading-tight">
+        <h1 className="text-6xl font-bold">
           Agentic AI Based
-          <br />
-          Disaster Management System
+          <span className="text-cyan-400"> Disaster </span>
+          Management System
         </h1>
 
-        <p className="mt-6 text-xl text-gray-300 max-w-3xl">
-          An intelligent disaster response platform featuring AI prediction,
-          BLE Mesh communication, safe zone navigation, transparent relief
-          distribution, and government rehabilitation support.
+        <p className="mt-6 text-xl text-gray-300">
+          AI Powered Disaster Prediction, BLE Mesh Communication,
+          Safe Zones and Relief Distribution.
         </p>
 
-        <div className="mt-8 flex gap-5">
-          <button className="bg-cyan-500 hover:bg-cyan-600 px-6 py-3 rounded-lg font-semibold">
+        <div className="mt-8 flex gap-4">
+          <button className="bg-cyan-500 px-6 py-3 rounded-lg">
             Get Started
           </button>
 
-          <button className="border border-white px-6 py-3 rounded-lg hover:bg-white hover:text-black">
-            Live Disaster Map
+          <button className="border border-white px-6 py-3 rounded-lg">
+            Explore Map
           </button>
         </div>
-
       </div>
     </section>
   );
