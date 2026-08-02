@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { db } from "../../firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import {
   MapPin,
   Calendar,
@@ -36,13 +38,35 @@ function ReportForm() {
     );
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    console.log(formData);
+  try {
+    await addDoc(collection(db, "disasterReports"), {
+      disasterType: formData.disasterType,
+      severity: formData.severity,
+      location: formData.location,
+      description: formData.description,
+      imageName: formData.image ? formData.image.name : "",
+      status: "Pending",
+      createdAt: serverTimestamp(),
+    });
 
     alert("✅ Disaster Report Submitted Successfully!");
-  };
+
+    setFormData({
+      disasterType: "",
+      severity: "",
+      location: "",
+      description: "",
+      image: null,
+    });
+
+  } catch (error) {
+    console.error(error);
+    alert("❌ Error submitting report");
+  }
+};
 
   return (
     <div className="bg-white rounded-3xl shadow-2xl p-8 mt-8">
