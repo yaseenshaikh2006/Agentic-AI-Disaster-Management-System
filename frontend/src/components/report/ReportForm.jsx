@@ -1,6 +1,12 @@
 import { useState } from "react";
+import axios from "axios";
 import { db } from "../../firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import {
+  CLOUDINARY_URL,
+  UPLOAD_PRESET,
+} from "../../config/cloudinary";
+
 import {
   MapPin,
   Calendar,
@@ -8,6 +14,7 @@ import {
   FileText,
   Send,
 } from "lucide-react";
+
 import UploadBox from "./UploadBox";
 
 function ReportForm() {
@@ -39,38 +46,54 @@ function ReportForm() {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  try {
-    await addDoc(collection(db, "disasterReports"), {
-      disasterType: formData.disasterType,
-      severity: formData.severity,
-      location: formData.location,
-      description: formData.description,
-      imageName: formData.image ? formData.image.name : "",
-      status: "Pending",
-      createdAt: serverTimestamp(),
-    });
+    try {
+      let imageUrl = "";
 
-    alert("✅ Disaster Report Submitted Successfully!");
+      // Upload image to Cloudinary
+      if (formData.image) {
+        const imageData = new FormData();
 
-    setFormData({
-      disasterType: "",
-      severity: "",
-      location: "",
-      description: "",
-      image: null,
-    });
+        imageData.append("file", formData.image);
+        imageData.append("upload_preset", UPLOAD_PRESET);
 
-  } catch (error) {
-    console.error(error);
-    alert("❌ Error submitting report");
-  }
-};
+        const uploadResponse = await axios.post(
+          CLOUDINARY_URL,
+          imageData
+        );
 
-  return (
+        imageUrl = uploadResponse.data.secure_url;
+      }
+
+      // Save report in Firestore
+      await addDoc(collection(db, "disasterReports"), {
+        disasterType: formData.disasterType,
+        severity: formData.severity,
+        location: formData.location,
+        description: formData.description,
+        imageUrl,
+        status: "Pending",
+        createdAt: serverTimestamp(),
+      });
+
+      alert("✅ Disaster Report Submitted Successfully!");
+
+      setFormData({
+        disasterType: "",
+        severity: "",
+        location: "",
+        description: "",
+        image: null,
+      });
+
+    } catch (error) {
+      console.error(error);
+      alert("❌ Error submitting report");
+    }
+  };
+    return (
     <div className="bg-white rounded-3xl shadow-2xl p-8 mt-8">
-
       <form onSubmit={handleSubmit} className="space-y-8">
 
         {/* Header */}
@@ -185,6 +208,7 @@ function ReportForm() {
         </div>
 
         {/* Description */}
+
         <div>
 
           <label className="font-semibold flex items-center gap-2 mb-2">
@@ -207,7 +231,8 @@ function ReportForm() {
 
         </div>
 
-        {/* Upload */}
+        {/* Image Upload */}
+
         <UploadBox
           image={formData.image}
           onChange={(e) =>
@@ -218,7 +243,8 @@ function ReportForm() {
           }
         />
 
-        {/* Submit */}
+        {/* Submit Button */}
+
         <button
           type="submit"
           className="w-full bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600 text-white py-4 rounded-2xl font-bold text-lg flex justify-center items-center gap-3 transition duration-300"
@@ -228,7 +254,6 @@ function ReportForm() {
         </button>
 
       </form>
-
     </div>
   );
 }
