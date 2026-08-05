@@ -6,6 +6,7 @@ import {
   Clock3,
   CheckCircle,
   ShieldAlert,
+  TrendingUp,
 } from "lucide-react";
 
 function DashboardStats() {
@@ -44,48 +45,71 @@ function DashboardStats() {
     {
       title: "Total Reports",
       value: stats.total,
-      icon: <FileWarning size={30} />,
-      color: "bg-blue-500",
+      icon: <FileWarning size={32} />,
+      color: "from-blue-500 to-blue-700",
+      text: "All disaster reports",
     },
     {
       title: "Pending",
       value: stats.pending,
-      icon: <Clock3 size={30} />,
-      color: "bg-yellow-500",
+      icon: <Clock3 size={32} />,
+      color: "from-yellow-400 to-orange-500",
+      text: "Waiting for verification",
     },
     {
       title: "Verified",
       value: stats.verified,
-      icon: <CheckCircle size={30} />,
-      color: "bg-green-500",
+      icon: <CheckCircle size={32} />,
+      color: "from-green-500 to-emerald-700",
+      text: "Successfully verified",
     },
     {
       title: "Critical",
       value: stats.critical,
-      icon: <ShieldAlert size={30} />,
-      color: "bg-red-500",
+      icon: <ShieldAlert size={32} />,
+      color: "from-red-500 to-red-700",
+      text: "Need immediate action",
     },
   ];
 
   return (
-    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+
       {cards.map((card, index) => (
         <div
           key={index}
-          className="bg-white rounded-2xl shadow-lg p-6 flex justify-between items-center"
+          className={`bg-gradient-to-r ${card.color} rounded-3xl p-6 text-white shadow-xl hover:scale-105 transition duration-300`}
         >
-          <div>
-            <p className="text-gray-500">{card.title}</p>
-            <h2 className="text-4xl font-bold mt-2">
-              {card.value}
-            </h2>
+          <div className="flex justify-between items-center">
+
+            <div>
+              <p className="text-sm opacity-90">
+                {card.title}
+              </p>
+
+              <h2 className="text-5xl font-bold mt-3">
+                {card.value}
+              </h2>
+
+              <p className="text-sm mt-3 opacity-90">
+                {card.text}
+              </p>
+            </div>
+
+            <div className="bg-white/20 p-4 rounded-2xl">
+              {card.icon}
+            </div>
+
           </div>
 
-          <div className={`${card.color} p-4 rounded-2xl text-white`}>
-            {card.icon}
+          <div className="flex items-center gap-2 mt-5 text-sm">
+            <TrendingUp size={16} />
+            <span>Live Firestore Data</span>
           </div>
+
         </div>
       ))}
+
     </div>
   );
 }

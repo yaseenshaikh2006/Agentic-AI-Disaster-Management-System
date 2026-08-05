@@ -13,7 +13,7 @@ import L from "leaflet";
 import { db } from "../../firebase";
 import { collection, onSnapshot } from "firebase/firestore";
 
-// Fix Leaflet marker icons
+// Leaflet Marker Fix
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
@@ -36,11 +36,11 @@ function ChangeView({ center }) {
   return null;
 }
 
-// Default demo markers
+// Demo Markers
 const disasterLocations = [
   {
     id: 1,
-    position: [19.076, 72.8777],
+    position: [19.0760, 72.8777],
     title: "🌊 Flood Alert",
     description: "Mumbai - High Flood Risk",
   },
@@ -59,10 +59,10 @@ const disasterLocations = [
 ];
 
 function DisasterMap() {
-  const [position, setPosition] = useState([19.076, 72.8777]);
+  const [position, setPosition] = useState([19.0760, 72.8777]);
   const [reports, setReports] = useState([]);
 
-  // Get User GPS
+  // User GPS
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
       (location) => {
@@ -77,7 +77,7 @@ function DisasterMap() {
     );
   }, []);
 
-  // Fetch Firestore Reports
+  // Firestore Reports
   useEffect(() => {
     const unsubscribe = onSnapshot(
       collection(db, "disasterReports"),
@@ -121,11 +121,11 @@ function DisasterMap() {
 
         <Marker position={position}>
           <Popup>
-            📍 Your Current Location
+            📍 <strong>Your Current Location</strong>
           </Popup>
         </Marker>
 
-        {/* Default Demo Markers */}
+        {/* Demo Markers */}
 
         {disasterLocations.map((location) => (
           <Marker
@@ -133,14 +133,16 @@ function DisasterMap() {
             position={location.position}
           >
             <Popup>
-              <strong>{location.title}</strong>
-              <br />
-              {location.description}
+              <h3 className="font-bold text-lg">
+                {location.title}
+              </h3>
+
+              <p>{location.description}</p>
             </Popup>
           </Marker>
         ))}
 
-        {/* Firestore Live Reports */}
+        {/* Firestore Reports */}
 
         {reports.map((report) => {
           if (!report.location) return null;
@@ -159,9 +161,19 @@ function DisasterMap() {
               key={report.id}
               position={[lat, lng]}
             >
-              <Popup>
+              <Popup minWidth={280}>
 
-                <h3 className="font-bold text-lg">
+                {/* Uploaded Image */}
+
+                {report.imageUrl && (
+                  <img
+                    src={report.imageUrl}
+                    alt="Disaster"
+                    className="w-full h-40 object-cover rounded-lg mb-3"
+                  />
+                )}
+
+                <h3 className="text-xl font-bold text-red-600 mb-2">
                   🚨 {report.disasterType}
                 </h3>
 
@@ -172,14 +184,33 @@ function DisasterMap() {
 
                 <p>
                   <strong>Status:</strong>{" "}
-                  {report.status}
+                  <span
+                    className={`font-bold ${
+                      report.status === "Verified"
+                        ? "text-green-600"
+                        : "text-yellow-600"
+                    }`}
+                  >
+                    {report.status}
+                  </span>
                 </p>
 
-                <p>
+                <p className="mt-2">
                   <strong>Description:</strong>
-                  <br />
+                </p>
+
+                <p className="text-gray-700">
                   {report.description}
                 </p>
+
+                {report.createdAt && (
+                  <p className="mt-3 text-sm text-gray-500">
+                    📅{" "}
+                    {report.createdAt
+                      .toDate()
+                      .toLocaleString()}
+                  </p>
+                )}
 
               </Popup>
             </Marker>
