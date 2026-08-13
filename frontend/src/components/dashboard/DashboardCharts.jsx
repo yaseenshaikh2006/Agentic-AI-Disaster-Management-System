@@ -30,122 +30,231 @@ function DashboardCharts() {
     return () => unsubscribe();
   }, []);
 
-  const disasterData = [
-    {
-      name: "Flood",
-      value: reports.filter((r) => r.disasterType === "Flood").length,
-    },
-    {
-      name: "Fire",
-      value: reports.filter((r) => r.disasterType === "Fire").length,
-    },
-    {
-      name: "Earthquake",
-      value: reports.filter((r) => r.disasterType === "Earthquake").length,
-    },
-    {
-      name: "Cyclone",
-      value: reports.filter((r) => r.disasterType === "Cyclone").length,
-    },
-    {
-      name: "Landslide",
-      value: reports.filter((r) => r.disasterType === "Landslide").length,
-    },
+  const disasterTypes = [
+    "Flood",
+    "Fire",
+    "Earthquake",
+    "Cyclone",
+    "Landslide",
   ];
 
-  const severityData = [
-    {
-      severity: "Low",
-      reports: reports.filter((r) => r.severity === "Low").length,
-    },
-    {
-      severity: "Medium",
-      reports: reports.filter((r) => r.severity === "Medium").length,
-    },
-    {
-      severity: "High",
-      reports: reports.filter((r) => r.severity === "High").length,
-    },
-    {
-      severity: "Critical",
-      reports: reports.filter((r) => r.severity === "Critical").length,
-    },
+  const severities = [
+    "Low",
+    "Medium",
+    "High",
+    "Critical",
   ];
+
+  const disasterData = disasterTypes
+    .map((type) => ({
+      name: type,
+      value: reports.filter(
+        (report) => report.disasterType === type
+      ).length,
+    }))
+    .filter((item) => item.value > 0);
+
+  const severityData = severities.map((severity) => ({
+    severity,
+    reports: reports.filter(
+      (report) => report.severity === severity
+    ).length,
+  }));
 
   const COLORS = [
-    "#3B82F6",
-    "#EF4444",
-    "#F59E0B",
-    "#8B5CF6",
-    "#10B981",
+    "#2563eb",
+    "#ef4444",
+    "#f59e0b",
+    "#7c3aed",
+    "#059669",
   ];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
 
-      {/* Pie Chart */}
+      {/* Disaster Types */}
 
-      <div className="bg-white rounded-2xl shadow-lg p-4">
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
 
-        <h2 className="text-lg font-semibold text-center mb-3">
-          🥧 Disaster Types
-        </h2>
+        <div className="flex items-center justify-between mb-4">
 
-        <ResponsiveContainer width="100%" height={220}>
-          <PieChart>
+          <div>
+            <h3 className="text-lg font-semibold text-slate-800">
+              Disaster Types
+            </h3>
 
-            <Pie
-              data={disasterData}
-              dataKey="value"
-              cx="50%"
-              cy="50%"
-              outerRadius={70}
-              label
-            >
-              {disasterData.map((entry, index) => (
-                <Cell
-                  key={index}
-                  fill={COLORS[index % COLORS.length]}
+            <p className="text-xs text-slate-500 mt-1">
+              Distribution of reported incidents
+            </p>
+          </div>
+
+          <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center">
+            <span className="text-sm font-bold text-slate-600">
+              DT
+            </span>
+          </div>
+
+        </div>
+
+        <div className="h-[280px]">
+
+          {disasterData.length === 0 ? (
+            <div className="h-full flex items-center justify-center text-sm text-slate-400">
+              No disaster data available
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+
+              <PieChart>
+
+                <Pie
+                  data={disasterData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="45%"
+                  innerRadius={65}
+                  outerRadius={95}
+                  paddingAngle={3}
+                >
+                  {disasterData.map((entry, index) => (
+                    <Cell
+                      key={entry.name}
+                      fill={COLORS[index % COLORS.length]}
+                    />
+                  ))}
+                </Pie>
+
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: "10px",
+                    border: "1px solid #e2e8f0",
+                    boxShadow:
+                      "0 4px 12px rgba(0,0,0,0.08)",
+                  }}
                 />
-              ))}
-            </Pie>
 
-            <Tooltip />
+              </PieChart>
 
-          </PieChart>
-        </ResponsiveContainer>
+            </ResponsiveContainer>
+          )}
+
+        </div>
+
+        {/* Legend */}
+
+        <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 mt-1">
+
+          {disasterData.map((item, index) => (
+            <div
+              key={item.name}
+              className="flex items-center gap-2 text-xs text-slate-600"
+            >
+              <span
+                className="w-2.5 h-2.5 rounded-full"
+                style={{
+                  backgroundColor:
+                    COLORS[index % COLORS.length],
+                }}
+              />
+
+              {item.name}
+
+              <span className="font-semibold">
+                {item.value}
+              </span>
+            </div>
+          ))}
+
+        </div>
 
       </div>
 
-      {/* Bar Chart */}
+      {/* Severity */}
 
-      <div className="bg-white rounded-2xl shadow-lg p-4">
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
 
-        <h2 className="text-lg font-semibold text-center mb-3">
-          📊 Severity Distribution
-        </h2>
+        <div className="flex items-center justify-between mb-4">
 
-        <ResponsiveContainer width="100%" height={220}>
+          <div>
+            <h3 className="text-lg font-semibold text-slate-800">
+              Severity Overview
+            </h3>
 
-          <BarChart data={severityData}>
+            <p className="text-xs text-slate-500 mt-1">
+              Incidents grouped by severity
+            </p>
+          </div>
 
-            <CartesianGrid strokeDasharray="3 3" />
+          <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center">
+            <span className="text-sm font-bold text-slate-600">
+              SV
+            </span>
+          </div>
 
-            <XAxis dataKey="severity" />
+        </div>
 
-            <YAxis allowDecimals={false} />
+        <div className="h-[280px]">
 
-            <Tooltip />
+          <ResponsiveContainer width="100%" height="100%">
 
-            <Bar
-              dataKey="reports"
-              fill="#2563EB"
-              radius={[6, 6, 0, 0]}
-            />
+            <BarChart
+              data={severityData}
+              margin={{
+                top: 10,
+                right: 10,
+                left: -15,
+                bottom: 5,
+              }}
+            >
 
-          </BarChart>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="#e2e8f0"
+              />
 
-        </ResponsiveContainer>
+              <XAxis
+                dataKey="severity"
+                tick={{
+                  fill: "#64748b",
+                  fontSize: 12,
+                }}
+                axisLine={false}
+                tickLine={false}
+              />
+
+              <YAxis
+                allowDecimals={false}
+                tick={{
+                  fill: "#64748b",
+                  fontSize: 12,
+                }}
+                axisLine={false}
+                tickLine={false}
+              />
+
+              <Tooltip
+                contentStyle={{
+                  borderRadius: "10px",
+                  border: "1px solid #e2e8f0",
+                  boxShadow:
+                    "0 4px 12px rgba(0,0,0,0.08)",
+                }}
+              />
+
+              <Bar
+                dataKey="reports"
+                fill="#334155"
+                radius={[5, 5, 0, 0]}
+                barSize={42}
+              />
+
+            </BarChart>
+
+          </ResponsiveContainer>
+
+        </div>
 
       </div>
 

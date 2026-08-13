@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { db } from "../../firebase";
 import { collection, onSnapshot } from "firebase/firestore";
+
 import {
-  FileWarning,
+  FileText,
   Clock3,
-  CheckCircle,
+  CheckCircle2,
   ShieldAlert,
-  TrendingUp,
 } from "lucide-react";
 
 function DashboardStats() {
@@ -25,12 +25,15 @@ function DashboardStats() {
 
         setStats({
           total: reports.length,
+
           pending: reports.filter(
             (r) => r.status === "Pending"
           ).length,
+
           verified: reports.filter(
             (r) => r.status === "Verified"
           ).length,
+
           critical: reports.filter(
             (r) => r.severity === "Critical"
           ).length,
@@ -45,70 +48,79 @@ function DashboardStats() {
     {
       title: "Total Reports",
       value: stats.total,
-      icon: <FileWarning size={32} />,
-      color: "from-blue-500 to-blue-700",
-      text: "All disaster reports",
+      description: "All reported incidents",
+      icon: FileText,
+      iconBg: "bg-slate-100",
+      iconColor: "text-slate-700",
     },
     {
-      title: "Pending",
+      title: "Pending Review",
       value: stats.pending,
-      icon: <Clock3 size={32} />,
-      color: "from-yellow-400 to-orange-500",
-      text: "Waiting for verification",
+      description: "Awaiting verification",
+      icon: Clock3,
+      iconBg: "bg-amber-50",
+      iconColor: "text-amber-600",
     },
     {
-      title: "Verified",
+      title: "Verified Reports",
       value: stats.verified,
-      icon: <CheckCircle size={32} />,
-      color: "from-green-500 to-emerald-700",
-      text: "Successfully verified",
+      description: "Successfully verified",
+      icon: CheckCircle2,
+      iconBg: "bg-emerald-50",
+      iconColor: "text-emerald-600",
     },
     {
-      title: "Critical",
+      title: "Critical Incidents",
       value: stats.critical,
-      icon: <ShieldAlert size={32} />,
-      color: "from-red-500 to-red-700",
-      text: "Need immediate action",
+      description: "Require immediate action",
+      icon: ShieldAlert,
+      iconBg: "bg-red-50",
+      iconColor: "text-red-600",
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
 
-      {cards.map((card, index) => (
-        <div
-          key={index}
-          className={`bg-gradient-to-r ${card.color} rounded-3xl p-6 text-white shadow-xl hover:scale-105 transition duration-300`}
-        >
-          <div className="flex justify-between items-center">
+      {cards.map((card) => {
+        const Icon = card.icon;
 
-            <div>
-              <p className="text-sm opacity-90">
-                {card.title}
-              </p>
+        return (
+          <div
+            key={card.title}
+            className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow"
+          >
 
-              <h2 className="text-5xl font-bold mt-3">
-                {card.value}
-              </h2>
+            <div className="flex items-start justify-between">
 
-              <p className="text-sm mt-3 opacity-90">
-                {card.text}
-              </p>
-            </div>
+              <div>
+                <p className="text-sm font-medium text-slate-500">
+                  {card.title}
+                </p>
 
-            <div className="bg-white/20 p-4 rounded-2xl">
-              {card.icon}
+                <p className="text-3xl font-bold text-slate-800 mt-2">
+                  {card.value}
+                </p>
+
+                <p className="text-xs text-slate-400 mt-2">
+                  {card.description}
+                </p>
+              </div>
+
+              <div
+                className={`w-11 h-11 rounded-lg ${card.iconBg} flex items-center justify-center`}
+              >
+                <Icon
+                  size={21}
+                  className={card.iconColor}
+                />
+              </div>
+
             </div>
 
           </div>
-
-          <div className="flex items-center gap-2 mt-5 text-sm">
-            <TrendingUp size={16} />
-            <span>Live Firestore Data</span>
-          </div>
-
-        </div>
-      ))}
+        );
+      })}
 
     </div>
   );
