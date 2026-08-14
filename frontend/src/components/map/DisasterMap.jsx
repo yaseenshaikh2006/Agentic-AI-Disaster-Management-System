@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 import {
   MapContainer,
   TileLayer,
@@ -6,6 +7,7 @@ import {
   Popup,
   useMap,
 } from "react-leaflet";
+
 import "leaflet/dist/leaflet.css";
 
 import L from "leaflet";
@@ -59,11 +61,19 @@ const disasterLocations = [
 ];
 
 function DisasterMap() {
-  const [position, setPosition] = useState([19.0760, 72.8777]);
+  const [position, setPosition] = useState([
+    19.0760,
+    72.8777,
+  ]);
+
   const [reports, setReports] = useState([]);
 
   // User GPS
   useEffect(() => {
+    if (!navigator.geolocation) {
+      return;
+    }
+
     navigator.geolocation.getCurrentPosition(
       (location) => {
         setPosition([
@@ -72,7 +82,9 @@ function DisasterMap() {
         ]);
       },
       () => {
-        alert("Location permission denied. Showing default location.");
+        console.log(
+          "Location permission denied. Showing default location."
+        );
       }
     );
   }, []);
@@ -95,21 +107,17 @@ function DisasterMap() {
   }, []);
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-5">
-
-      <h2 className="text-3xl font-bold mb-5">
-        🗺️ Live Disaster Map
-      </h2>
+    <div className="overflow-hidden rounded-2xl">
 
       <MapContainer
         center={position}
         zoom={8}
         style={{
-          height: "600px",
+          height: "650px",
           width: "100%",
-          borderRadius: "20px",
         }}
       >
+
         <ChangeView center={position} />
 
         <TileLayer
@@ -121,9 +129,10 @@ function DisasterMap() {
 
         <Marker position={position}>
           <Popup>
-            📍 <strong>Your Current Location</strong>
+            <strong>Your Current Location</strong>
           </Popup>
         </Marker>
+
 
         {/* Demo Markers */}
 
@@ -133,34 +142,47 @@ function DisasterMap() {
             position={location.position}
           >
             <Popup>
+
               <h3 className="font-bold text-lg">
                 {location.title}
               </h3>
 
-              <p>{location.description}</p>
+              <p className="mt-1">
+                {location.description}
+              </p>
+
             </Popup>
           </Marker>
         ))}
 
+
         {/* Firestore Reports */}
 
         {reports.map((report) => {
-          if (!report.location) return null;
+
+          if (!report.location) {
+            return null;
+          }
 
           const coords = report.location.split(",");
 
-          if (coords.length !== 2) return null;
+          if (coords.length !== 2) {
+            return null;
+          }
 
           const lat = parseFloat(coords[0]);
           const lng = parseFloat(coords[1]);
 
-          if (isNaN(lat) || isNaN(lng)) return null;
+          if (isNaN(lat) || isNaN(lng)) {
+            return null;
+          }
 
           return (
             <Marker
               key={report.id}
               position={[lat, lng]}
             >
+
               <Popup minWidth={280}>
 
                 {/* Uploaded Image */}
@@ -173,17 +195,28 @@ function DisasterMap() {
                   />
                 )}
 
+
+                {/* Disaster Type */}
+
                 <h3 className="text-xl font-bold text-red-600 mb-2">
                   🚨 {report.disasterType}
                 </h3>
+
+
+                {/* Severity */}
 
                 <p>
                   <strong>Severity:</strong>{" "}
                   {report.severity}
                 </p>
 
-                <p>
+
+                {/* Status */}
+
+                <p className="mt-1">
+
                   <strong>Status:</strong>{" "}
+
                   <span
                     className={`font-bold ${
                       report.status === "Verified"
@@ -193,7 +226,11 @@ function DisasterMap() {
                   >
                     {report.status}
                   </span>
+
                 </p>
+
+
+                {/* Description */}
 
                 <p className="mt-2">
                   <strong>Description:</strong>
@@ -203,16 +240,23 @@ function DisasterMap() {
                   {report.description}
                 </p>
 
+
+                {/* Date */}
+
                 {report.createdAt && (
                   <p className="mt-3 text-sm text-gray-500">
+
                     📅{" "}
+
                     {report.createdAt
                       .toDate()
                       .toLocaleString()}
+
                   </p>
                 )}
 
               </Popup>
+
             </Marker>
           );
         })}

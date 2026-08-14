@@ -8,56 +8,74 @@ import {
 function ReportStats() {
   const stats = [
     {
-      title: "Active Reports",
-      value: "245",
-      icon: <TriangleAlert size={30} />,
-      color: "bg-red-500",
+      title: "Incident Reporting",
+      description: "Submit emergency incidents",
+      icon: TriangleAlert,
+      iconStyle: "text-red-600 bg-red-50 border-red-100",
     },
     {
-      title: "Verified Alerts",
-      value: "198",
-      icon: <ShieldCheck size={30} />,
-      color: "bg-green-500",
+      title: "Report Verification",
+      description: "Reports reviewed for accuracy",
+      icon: ShieldCheck,
+      iconStyle: "text-emerald-600 bg-emerald-50 border-emerald-100",
     },
     {
-      title: "Relief Camps",
-      value: "34",
-      icon: <Building2 size={30} />,
-      color: "bg-blue-500",
+      title: "Relief Coordination",
+      description: "Connect incidents with response teams",
+      icon: Building2,
+      iconStyle: "text-blue-600 bg-blue-50 border-blue-100",
     },
     {
-      title: "Avg Response",
-      value: "12 min",
-      icon: <Clock3 size={30} />,
-      color: "bg-orange-500",
+      title: "Response Tracking",
+      description: "Monitor emergency response status",
+      icon: Clock3,
+      iconStyle: "text-amber-600 bg-amber-50 border-amber-100",
     },
   ];
 
   return (
-    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
+    <section className="mt-6">
 
-      {stats.map((item, index) => (
-        <div
-          key={index}
-          className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-2xl transition duration-300"
-        >
-          <div
-            className={`w-14 h-14 rounded-xl ${item.color} flex items-center justify-center text-white`}
-          >
-            {item.icon}
-          </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
-          <h2 className="text-3xl font-bold mt-5">
-            {item.value}
-          </h2>
+        {stats.map((item, index) => {
+          const Icon = item.icon;
 
-          <p className="text-gray-500 mt-2">
-            {item.title}
-          </p>
-        </div>
-      ))}
+          return (
+            <div
+              key={index}
+              className="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
+            >
 
-    </div>
+              <div className="flex items-start justify-between">
+
+                <div
+                  className={`flex h-10 w-10 items-center justify-center rounded-lg border ${item.iconStyle}`}
+                >
+                  <Icon size={20} />
+                </div>
+
+                <span className="text-xs font-medium text-slate-400">
+                  SYSTEM
+                </span>
+
+              </div>
+
+              <h3 className="mt-4 text-base font-semibold text-slate-800">
+                {item.title}
+              </h3>
+
+              <p className="mt-1 text-sm leading-5 text-slate-500">
+                {item.description}
+              </p>
+
+            </div>
+          );
+        })}
+
+      </div>
+
+    </section>
   );
 }
 

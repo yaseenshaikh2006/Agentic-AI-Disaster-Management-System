@@ -1,7 +1,12 @@
 import { useState } from "react";
 import axios from "axios";
 import { db } from "../../firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+} from "firebase/firestore";
+
 import {
   CLOUDINARY_URL,
   UPLOAD_PRESET,
@@ -13,6 +18,8 @@ import {
   TriangleAlert,
   FileText,
   Send,
+  Navigation,
+  Info,
 } from "lucide-react";
 
 import UploadBox from "./UploadBox";
@@ -92,169 +99,313 @@ function ReportForm() {
       alert("❌ Error submitting report");
     }
   };
-    return (
-    <div className="bg-white rounded-3xl shadow-2xl p-8 mt-8">
-      <form onSubmit={handleSubmit} className="space-y-8">
 
-        {/* Header */}
-        <div>
-          <h2 className="text-3xl font-bold text-slate-800">
-            🚨 Submit Disaster Report
-          </h2>
+  return (
+    <section className="mt-6 rounded-2xl border border-slate-200 bg-white shadow-sm">
 
-          <p className="text-gray-500 mt-2">
-            Fill in the details below so authorities can respond quickly.
-          </p>
-        </div>
+      <form onSubmit={handleSubmit}>
 
-        {/* Disaster Type + Severity */}
-        <div className="grid md:grid-cols-2 gap-6">
+        {/* Form Header */}
 
-          <div>
-            <label className="font-semibold flex items-center gap-2 mb-2">
-              <TriangleAlert size={18} />
-              Disaster Type
-            </label>
+        <div className="border-b border-slate-200 px-6 py-6 lg:px-8">
 
-            <select
-              className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-red-500 outline-none"
-              value={formData.disasterType}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  disasterType: e.target.value,
-                })
-              }
-            >
-              <option value="">Select Disaster</option>
-              <option>Flood</option>
-              <option>Fire</option>
-              <option>Earthquake</option>
-              <option>Cyclone</option>
-              <option>Landslide</option>
-            </select>
-          </div>
+          <div className="flex items-start gap-4">
 
-          <div>
-            <label className="font-semibold flex items-center gap-2 mb-2">
-              <Calendar size={18} />
-              Severity
-            </label>
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 border border-blue-100">
+              <FileText
+                size={22}
+                className="text-blue-600"
+              />
+            </div>
 
-            <select
-              className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-red-500 outline-none"
-              value={formData.severity}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  severity: e.target.value,
-                })
-              }
-            >
-              <option value="">Select Severity</option>
-              <option>Low</option>
-              <option>Medium</option>
-              <option>High</option>
-              <option>Critical</option>
-            </select>
+            <div>
+
+              <h2 className="text-xl font-bold text-slate-900">
+                Incident Information
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Provide accurate information about the emergency incident.
+              </p>
+
+            </div>
+
           </div>
 
         </div>
 
-        {/* Location + Time */}
-        <div className="grid md:grid-cols-2 gap-6">
 
-          <div>
-            <label className="font-semibold flex items-center gap-2 mb-2">
-              <MapPin size={18} />
-              Current Location
-            </label>
+        {/* Form Body */}
 
-            <div className="flex gap-3">
+        <div className="px-6 py-7 lg:px-8 space-y-7">
+
+          {/* Disaster Type + Severity */}
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+
+            {/* Disaster Type */}
+
+            <div>
+
+              <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
+
+                <TriangleAlert
+                  size={17}
+                  className="text-red-500"
+                />
+
+                Disaster Type
+
+              </label>
+
+              <select
+                required
+                value={formData.disasterType}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    disasterType: e.target.value,
+                  })
+                }
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              >
+
+                <option value="">
+                  Select disaster type
+                </option>
+
+                <option>Flood</option>
+                <option>Fire</option>
+                <option>Earthquake</option>
+                <option>Cyclone</option>
+                <option>Landslide</option>
+
+              </select>
+
+            </div>
+
+
+            {/* Severity */}
+
+            <div>
+
+              <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
+
+                <TriangleAlert
+                  size={17}
+                  className="text-amber-500"
+                />
+
+                Severity
+
+              </label>
+
+              <select
+                required
+                value={formData.severity}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    severity: e.target.value,
+                  })
+                }
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              >
+
+                <option value="">
+                  Select severity
+                </option>
+
+                <option>Low</option>
+                <option>Medium</option>
+                <option>High</option>
+                <option>Critical</option>
+
+              </select>
+
+            </div>
+
+          </div>
+
+
+          {/* Location + Time */}
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+
+            {/* Location */}
+
+            <div>
+
+              <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
+
+                <MapPin
+                  size={17}
+                  className="text-blue-600"
+                />
+
+                Current Location
+
+              </label>
+
+              <div className="flex gap-2">
+
+                <input
+                  type="text"
+                  required
+                  readOnly
+                  value={formData.location}
+                  placeholder="Location coordinates"
+                  className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-600 outline-none"
+                />
+
+                <button
+                  type="button"
+                  onClick={getCurrentLocation}
+                  className="flex shrink-0 items-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+                >
+
+                  <Navigation size={16} />
+
+                  GPS
+
+                </button>
+
+              </div>
+
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-400">
+
+                <Info size={13} />
+
+                Use GPS to automatically capture your current location.
+
+              </p>
+
+            </div>
+
+
+            {/* Report Time */}
+
+            <div>
+
+              <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
+
+                <Calendar
+                  size={17}
+                  className="text-slate-500"
+                />
+
+                Report Time
+
+              </label>
 
               <input
                 type="text"
-                className="flex-1 border border-gray-300 rounded-xl p-3"
-                placeholder="Click Get GPS"
-                value={formData.location}
                 readOnly
+                value={new Date().toLocaleString()}
+                className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-600 outline-none"
               />
 
-              <button
-                type="button"
-                onClick={getCurrentLocation}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-5 rounded-xl transition"
-              >
-                Get GPS
-              </button>
-
             </div>
+
           </div>
+
+
+          {/* Description */}
 
           <div>
-            <label className="font-semibold flex items-center gap-2 mb-2">
-              <Calendar size={18} />
-              Report Time
+
+            <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
+
+              <FileText
+                size={17}
+                className="text-slate-600"
+              />
+
+              Incident Description
+
             </label>
 
-            <input
-              type="text"
-              className="w-full border border-gray-300 rounded-xl p-3 bg-gray-100"
-              value={new Date().toLocaleString()}
-              readOnly
+            <textarea
+              required
+              rows="5"
+              value={formData.description}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  description: e.target.value,
+                })
+              }
+              placeholder="Describe what happened, the affected area, visible damage, or any immediate danger..."
+              className="w-full resize-none rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />
+
+          </div>
+
+
+          {/* Evidence Upload */}
+
+          <div>
+
+            <div className="mb-2">
+
+              <h3 className="text-sm font-semibold text-slate-700">
+                Supporting Evidence
+              </h3>
+
+              <p className="mt-1 text-xs text-slate-400">
+                Upload an image of the incident if available.
+              </p>
+
+            </div>
+
+            <UploadBox
+              image={formData.image}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  image: e.target.files[0],
+                })
+              }
+            />
+
           </div>
 
         </div>
 
-        {/* Description */}
 
-        <div>
+        {/* Form Footer */}
 
-          <label className="font-semibold flex items-center gap-2 mb-2">
-            <FileText size={18} />
-            Description
-          </label>
+        <div className="flex flex-col gap-4 border-t border-slate-200 bg-slate-50 px-6 py-5 sm:flex-row sm:items-center sm:justify-between lg:px-8">
 
-          <textarea
-            rows="5"
-            className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-red-500 outline-none"
-            placeholder="Describe the disaster..."
-            value={formData.description}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                description: e.target.value,
-              })
-            }
-          />
+          <div>
+
+            <p className="text-sm font-medium text-slate-700">
+              Ready to submit?
+            </p>
+
+            <p className="mt-0.5 text-xs text-slate-400">
+              Your report will be sent for verification.
+            </p>
+
+          </div>
+
+
+          <button
+            type="submit"
+            className="flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-7 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 hover:shadow-md"
+          >
+
+            <Send size={17} />
+
+            Submit Disaster Report
+
+          </button>
 
         </div>
 
-        {/* Image Upload */}
-
-        <UploadBox
-          image={formData.image}
-          onChange={(e) =>
-            setFormData({
-              ...formData,
-              image: e.target.files[0],
-            })
-          }
-        />
-
-        {/* Submit Button */}
-
-        <button
-          type="submit"
-          className="w-full bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600 text-white py-4 rounded-2xl font-bold text-lg flex justify-center items-center gap-3 transition duration-300"
-        >
-          <Send size={22} />
-          Submit Disaster Report
-        </button>
-
       </form>
-    </div>
+
+    </section>
   );
 }
 
