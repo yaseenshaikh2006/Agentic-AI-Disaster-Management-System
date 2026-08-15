@@ -16,11 +16,13 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/map" element={<DisasterMap />} />
       <Route path="/report" element={<ReportDisaster />} />
       <Route path="/relief" element={<ReliefDistribution />} />
       <Route path="/government" element={<GovernmentDashboard />} />
+
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
