@@ -1,270 +1,182 @@
-import { useEffect, useState } from "react";
+import React, { useState } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Popup,
-  useMap,
-} from "react-leaflet";
-
-import "leaflet/dist/leaflet.css";
-
-import L from "leaflet";
-
-import { db } from "../../firebase";
-import { collection, onSnapshot } from "firebase/firestore";
-
-// Leaflet Marker Fix
-import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
-
+// Fix for default Leaflet marker icons in React
 delete L.Icon.Default.prototype._getIconUrl;
-
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-function ChangeView({ center }) {
-  const map = useMap();
+// Custom SVG pulsing marker generator
+const createIncidentIcon = (severity) => {
+  const colorMap = {
+    critical: '#dc2626',
+    high: '#ea580c',
+    medium: '#d97706',
+    low: '#16a34a',
+  };
+  const color = colorMap[severity] || '#2563eb';
 
-  useEffect(() => {
-    map.setView(center, 13);
-  }, [center, map]);
+  return L.divIcon({
+    className: 'custom-incident-pin',
+    html: `
+      <div style="position: relative; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+        <span style="position: absolute; width: 100%; height: 100%; border-radius: 50%; background-color: ${color}; opacity: 0.75; animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>
+        <span style="position: relative; width: 14px; height: 14px; border-radius: 50%; background-color: ${color}; border: 2px solid #ffffff; box-shadow: 0 0 8px rgba(0,0,0,0.5);"></span>
+      </div>
+      <style>
+        @keyframes ping {
+          75%, 100% { transform: scale(2.2); opacity: 0; }
+        }
+      </style>
+    `,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+    popupAnchor: [0, -12],
+  });
+};
 
-  return null;
-}
-
-// Demo Markers
-const disasterLocations = [
+// Initial disaster telemetry for demonstration
+const SAMPLE_INCIDENTS = [
   {
-    id: 1,
-    position: [19.0760, 72.8777],
-    title: "🌊 Flood Alert",
-    description: "Mumbai - High Flood Risk",
+    id: 'INC-101',
+    title: 'Severe Flash Flood & Submerged Highway',
+    type: 'flood',
+    severity: 'critical',
+    lat: 19.0760,
+    lng: 72.8777,
+    reportedAt: '12 mins ago',
+    peopleAffected: 45,
+    needs: ['Evacuation Boat', 'Medical Aid'],
+    aiAssessment: 'High-risk water level surge. Water velocity exceeds safety threshold for light vehicles.'
   },
   {
-    id: 2,
-    position: [18.5204, 73.8567],
-    title: "🔥 Fire Alert",
-    description: "Pune - Industrial Fire",
+    id: 'INC-102',
+    title: 'Urban Structural Collapse',
+    type: 'earthquake',
+    severity: 'high',
+    lat: 19.1136,
+    lng: 72.8697,
+    reportedAt: '35 mins ago',
+    peopleAffected: 12,
+    needs: ['Search & Rescue', 'Heavy Cranes'],
+    aiAssessment: 'Potential localized secondary collapse. Perimeter isolation recommended.'
   },
   {
-    id: 3,
-    position: [19.2183, 72.9781],
-    title: "🏠 Safe Shelter",
-    description: "Shelter Capacity: 500 People",
-  },
+    id: 'INC-103',
+    title: 'Commercial Complex Fire Hazard',
+    type: 'fire',
+    severity: 'medium',
+    lat: 19.0330,
+    lng: 73.0297,
+    reportedAt: '1 hour ago',
+    peopleAffected: 0,
+    needs: ['Fire Tender', 'Traffic Diversion'],
+    aiAssessment: 'Smoke plume dispersing southwest. Visibility reduced within 800m radius.'
+  }
 ];
 
-function DisasterMap() {
-  const [position, setPosition] = useState([
-    19.0760,
-    72.8777,
-  ]);
+export default function DisasterMap() {
+  const [selectedSeverity, setSelectedSeverity] = useState('all');
+  const [activeIncident, setActiveIncident] = useState(null);
 
-  const [reports, setReports] = useState([]);
-
-  // User GPS
-  useEffect(() => {
-    if (!navigator.geolocation) {
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (location) => {
-        setPosition([
-          location.coords.latitude,
-          location.coords.longitude,
-        ]);
-      },
-      () => {
-        console.log(
-          "Location permission denied. Showing default location."
-        );
-      }
-    );
-  }, []);
-
-  // Firestore Reports
-  useEffect(() => {
-    const unsubscribe = onSnapshot(
-      collection(db, "disasterReports"),
-      (snapshot) => {
-        const data = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        setReports(data);
-      }
-    );
-
-    return () => unsubscribe();
-  }, []);
+  const filteredIncidents = selectedSeverity === 'all'
+    ? SAMPLE_INCIDENTS
+    : SAMPLE_INCIDENTS.filter((inc) => inc.severity === selectedSeverity);
 
   return (
-    <div className="overflow-hidden rounded-2xl">
-
-      <MapContainer
-        center={position}
-        zoom={8}
-        style={{
-          height: "650px",
-          width: "100%",
-        }}
+    <div className="relative w-full h-[650px] rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-950">
+      
+      {/* Floating Control Panel */}
+<div className="absolute top-3 right-3 z-[1000] bg-slate-900/90 backdrop-blur-md border border-slate-700/80 p-2.5 rounded-xl shadow-xl flex flex-col gap-1.5">  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300">
+    Filter Live Incidents
+  </span>
+  <div className="flex gap-1.5">
+    {['all', 'critical', 'high', 'medium'].map((level) => (
+      <button
+        key={level}
+        onClick={() => setSelectedSeverity(level)}
+        className={`px-2.5 py-1 rounded-lg text-xs font-semibold capitalize transition ${
+          selectedSeverity === level
+            ? 'bg-blue-600 text-white shadow-md'
+            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+        }`}
       >
+        {level}
+      </button>
+    ))}
+  </div>
+</div>
 
-        <ChangeView center={position} />
-
+      {/* Map Viewport */}
+      <MapContainer
+        center={[19.0760, 72.8777]}
+        zoom={11}
+        scrollWheelZoom={true}
+        className="w-full h-full"
+      >
         <TileLayer
-          attribution="&copy; OpenStreetMap contributors"
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+/>
 
-        {/* User Location */}
+        {filteredIncidents.map((incident) => (
+          <React.Fragment key={incident.id}>
+            {/* Radius Highlight for Critical Incidents */}
+            {incident.severity === 'critical' && (
+              <Circle
+                center={[incident.lat, incident.lng]}
+                radius={2000}
+                pathOptions={{ color: '#dc2626', fillColor: '#dc2626', fillOpacity: 0.15 }}
+              />
+            )}
 
-        <Marker position={position}>
-          <Popup>
-            <strong>Your Current Location</strong>
-          </Popup>
-        </Marker>
-
-
-        {/* Demo Markers */}
-
-        {disasterLocations.map((location) => (
-          <Marker
-            key={location.id}
-            position={location.position}
-          >
-            <Popup>
-
-              <h3 className="font-bold text-lg">
-                {location.title}
-              </h3>
-
-              <p className="mt-1">
-                {location.description}
-              </p>
-
-            </Popup>
-          </Marker>
-        ))}
-
-
-        {/* Firestore Reports */}
-
-        {reports.map((report) => {
-
-          if (!report.location) {
-            return null;
-          }
-
-          const coords = report.location.split(",");
-
-          if (coords.length !== 2) {
-            return null;
-          }
-
-          const lat = parseFloat(coords[0]);
-          const lng = parseFloat(coords[1]);
-
-          if (isNaN(lat) || isNaN(lng)) {
-            return null;
-          }
-
-          return (
+            {/* Custom Marker Pin */}
             <Marker
-              key={report.id}
-              position={[lat, lng]}
+              position={[incident.lat, incident.lng]}
+              icon={createIncidentIcon(incident.severity)}
+              eventHandlers={{
+                click: () => setActiveIncident(incident),
+              }}
             >
+              <Popup>
+                <div className="p-1 max-w-xs text-slate-900">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="font-bold text-xs uppercase px-1.5 py-0.5 rounded bg-slate-200">
+                      {incident.id}
+                    </span>
+                    <span className={`text-[10px] uppercase font-extrabold px-1.5 py-0.5 rounded text-white ${
+                      incident.severity === 'critical' ? 'bg-red-600' :
+                      incident.severity === 'high' ? 'bg-orange-500' : 'bg-amber-500'
+                    }`}>
+                      {incident.severity}
+                    </span>
+                  </div>
+                  <h4 className="font-semibold text-sm mb-1">{incident.title}</h4>
+                  <p className="text-xs text-slate-600 mb-2">Reported {incident.reportedAt}</p>
+                  
+                  <div className="bg-slate-100 p-2 rounded text-xs mb-2">
+                    <span className="font-bold text-slate-700">🤖 AI Triage:</span>
+                    <p className="text-slate-600 text-[11px] mt-0.5">{incident.aiAssessment}</p>
+                  </div>
 
-              <Popup minWidth={280}>
-
-                {/* Uploaded Image */}
-
-                {report.imageUrl && (
-                  <img
-                    src={report.imageUrl}
-                    alt="Disaster"
-                    className="w-full h-40 object-cover rounded-lg mb-3"
-                  />
-                )}
-
-
-                {/* Disaster Type */}
-
-                <h3 className="text-xl font-bold text-red-600 mb-2">
-                  🚨 {report.disasterType}
-                </h3>
-
-
-                {/* Severity */}
-
-                <p>
-                  <strong>Severity:</strong>{" "}
-                  {report.severity}
-                </p>
-
-
-                {/* Status */}
-
-                <p className="mt-1">
-
-                  <strong>Status:</strong>{" "}
-
-                  <span
-                    className={`font-bold ${
-                      report.status === "Verified"
-                        ? "text-green-600"
-                        : "text-yellow-600"
-                    }`}
-                  >
-                    {report.status}
-                  </span>
-
-                </p>
-
-
-                {/* Description */}
-
-                <p className="mt-2">
-                  <strong>Description:</strong>
-                </p>
-
-                <p className="text-gray-700">
-                  {report.description}
-                </p>
-
-
-                {/* Date */}
-
-                {report.createdAt && (
-                  <p className="mt-3 text-sm text-gray-500">
-
-                    📅{" "}
-
-                    {report.createdAt
-                      .toDate()
-                      .toLocaleString()}
-
-                  </p>
-                )}
-
+                  <div className="flex flex-wrap gap-1">
+                    {incident.needs.map((n, i) => (
+                      <span key={i} className="text-[10px] bg-blue-100 text-blue-800 font-medium px-1.5 py-0.5 rounded">
+                        {n}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </Popup>
-
             </Marker>
-          );
-        })}
-
+          </React.Fragment>
+        ))}
       </MapContainer>
-
     </div>
   );
 }
-
-export default DisasterMap;
