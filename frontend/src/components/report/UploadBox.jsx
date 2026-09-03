@@ -1,84 +1,90 @@
-import { UploadCloud, ImageIcon, CheckCircle2 } from "lucide-react";
+import React, { useState } from 'react';
 
-function UploadBox({ image, onChange }) {
+export default function UploadBox({ onImageSelected }) {
+  const [preview, setPreview] = useState(null);
+  const [compressing, setCompressing] = useState(false);
+
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxWidth = 1000;
+          const scaleSize = maxWidth / img.width;
+          const width = img.width > maxWidth ? maxWidth : img.width;
+          const height = img.width > maxWidth ? img.height * scaleSize : img.height;
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(
+            (blob) => {
+              resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+            },
+            'image/jpeg',
+            0.7
+          );
+        };
+      };
+    });
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setCompressing(true);
+    const compressed = await compressImage(file);
+    setPreview(URL.createObjectURL(compressed));
+    setCompressing(false);
+
+    if (onImageSelected) {
+      onImageSelected(compressed);
+    }
+  };
+
   return (
-    <div>
-
-      <label className="block text-sm font-semibold text-slate-700 mb-2">
-        Upload Disaster Image
-      </label>
-
-      <label
-        className={`relative flex min-h-48 w-full cursor-pointer items-center justify-center rounded-xl border-2 border-dashed transition-all duration-200 ${
-          image
-            ? "border-emerald-300 bg-emerald-50/50"
-            : "border-slate-300 bg-slate-50 hover:border-blue-400 hover:bg-blue-50/40"
-        }`}
-      >
-
-        {image ? (
-          <div className="flex w-full flex-col items-center gap-3 p-5">
-
-            <div className="relative max-h-52 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
-
-              <img
-                src={URL.createObjectURL(image)}
-                alt="Disaster preview"
-                className="max-h-52 max-w-full rounded-lg object-contain"
-              />
-
-            </div>
-
-            <div className="flex items-center gap-2 text-sm font-medium text-emerald-600">
-
-              <CheckCircle2 size={17} />
-
-              Image selected successfully
-
-            </div>
-
-            <p className="text-xs text-slate-400">
-              Click to choose a different image
-            </p>
-
-          </div>
-        ) : (
-          <div className="flex flex-col items-center px-6 py-8 text-center">
-
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-blue-100 bg-blue-50">
-              <UploadCloud
-                size={23}
-                className="text-blue-600"
-              />
-            </div>
-
-            <p className="mt-4 text-sm font-semibold text-slate-700">
-              Upload incident evidence
-            </p>
-
-            <p className="mt-1 text-xs text-slate-400">
-              Click to browse and select an image
-            </p>
-
-            <div className="mt-4 flex items-center gap-2 text-xs text-slate-400">
-              <ImageIcon size={14} />
-              JPG, PNG or other image formats
-            </div>
-
-          </div>
-        )}
-
-        <input
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={onChange}
-        />
-
-      </label>
-
+    <div className="border border-dashed border-slate-700 bg-slate-900/50 rounded-2xl p-4 text-center">
+      {preview ? (
+        <div className="relative group">
+          <img
+            src={preview}
+            alt="Disaster Scene Preview"
+            className="w-full max-h-56 object-cover rounded-xl border border-slate-800"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              setPreview(null);
+              if (onImageSelected) onImageSelected(null);
+            }}
+            className="absolute top-2 right-2 bg-red-600/90 text-white text-xs px-2.5 py-1 rounded-md shadow hover:bg-red-500"
+          >
+            Remove
+          </button>
+        </div>
+      ) : (
+        <label className="cursor-pointer block py-6">
+          <div className="text-3xl mb-2">📸</div>
+          <span className="text-sm font-medium text-slate-300">
+            {compressing ? 'Optimizing image for low bandwidth...' : 'Attach Disaster Verification Image'}
+          </span>
+          <p className="text-xs text-slate-500 mt-1">Auto-compressed to transmit over emergency networks</p>
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileChange}
+            disabled={compressing}
+          />
+        </label>
+      )}
     </div>
   );
 }
-
-export default UploadBox;
