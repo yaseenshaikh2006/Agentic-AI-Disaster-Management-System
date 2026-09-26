@@ -1,20 +1,10 @@
-@import "tailwindcss";
-
-/* If your project is on Tailwind v3, use these instead:
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-*/
-
-:root {
-  color-scheme: dark;
-}
 
 body {
   margin: 0;
   padding: 0;
-  background-color: #0b0f19;
-  color: #f1f5f9;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
 }

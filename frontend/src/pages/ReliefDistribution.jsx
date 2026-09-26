@@ -1,159 +1,257 @@
-import React, { useState } from 'react';
-
-const INITIAL_INVENTORY = [
-  { id: 'inv-1', item: 'Packaged Drinking Water', qty: '12,450 L', unit: 'Liters', status: 'Optimal', change: '+2,000 L today', color: 'text-blue-400 border-blue-500/30 bg-blue-500/10' },
-  { id: 'inv-2', item: 'Ready-to-Eat Food Kits', qty: '3,800', unit: 'Rations', status: 'Moderate', change: '-450 dispatched', color: 'text-amber-400 border-amber-500/30 bg-amber-500/10' },
-  { id: 'inv-3', item: 'First-Aid Trauma Kits', qty: '640', unit: 'Packs', status: 'Low Stock', change: '-120 dispatched', color: 'text-red-400 border-red-500/30 bg-red-500/10' },
-  { id: 'inv-4', item: 'Blankets & Tarpaulins', qty: '1,920', unit: 'Units', status: 'Optimal', change: '+500 restocked', color: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' },
-];
-
-const SHELTERS = [
-  { id: 'SH-01', name: 'St. Mary Community Complex', capacity: 600, occupied: 480, area: 'Kurla West', status: '80% Full', contact: '+91 98201-XXXXX' },
-  { id: 'SH-02', name: 'Municipal Sports Arena', capacity: 1200, occupied: 650, area: 'BKC East', status: '54% Full', contact: '+91 98202-XXXXX' },
-  { id: 'SH-03', name: 'Bhavans Relief Camp', capacity: 400, occupied: 390, area: 'Andheri West', status: '97% Full', contact: '+91 98203-XXXXX' },
-];
-
-const DISPATCH_REQUESTS = [
-  { id: 'REQ-401', destination: 'Sector 4 Flood Pocket', item: 'Drinking Water & First-Aid', priority: 'Critical', transport: 'NDRF Inflatable Boat', eta: '14 mins' },
-  { id: 'REQ-402', destination: 'Relief Camp #2', item: '200 Tarpaulins & Food Kits', priority: 'High', transport: 'Heavy Truck 04', eta: '28 mins' },
-  { id: 'REQ-403', destination: 'Clinic Tent 1', item: 'Oxygen Cylinders & Trauma Kits', priority: 'Critical', transport: 'Emergency Van', eta: '8 mins' },
-];
+import React, { useEffect, useState } from "react";
+import { getReliefInventory, getShelterCapacities, listIncidents, optimizeDispatch } from "../services/api";
+import { Boxes, Home, Truck, CheckCircle2, RefreshCw } from "lucide-react";
 
 export default function ReliefDistribution() {
-  const [inventory] = useState(INITIAL_INVENTORY);
-  const [shelters] = useState(SHELTERS);
-  const [requests] = useState(DISPATCH_REQUESTS);
+  const [inventory, setInventory] = useState([]);
+  const [shelters, setShelters] = useState([]);
+  const [incidents, setIncidents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [allocatingId, setAllocatingId] = useState(null);
+  const [dispatchResults, setDispatchResults] = useState({});
+
+  const loadLogisticsData = async () => {
+    try {
+      setLoading(true);
+      const [invData, shelterData, incData] = await Promise.all([
+        getReliefInventory(),
+        getShelterCapacities(),
+        listIncidents(),
+      ]);
+      setInventory(invData);
+      setShelters(shelterData);
+      setIncidents(incData);
+    } catch (err) {
+      console.error("Logistics sync error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadLogisticsData();
+  }, []);
+
+  const handleAllocate = async (incident) => {
+    try {
+      setAllocatingId(incident.id);
+      const severity = incident.triage?.severity_level || "High";
+      const result = await optimizeDispatch(incident.id, severity);
+      setDispatchResults((prev) => ({ ...prev, [incident.id]: result }));
+    } catch (err) {
+      alert("Allocation error: " + err.message);
+    } finally {
+      setAllocatingId(null);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-[#090d16] text-slate-100 p-4 sm:p-6 lg:p-8 space-y-6">
-      
+    <div className="min-h-screen bg-[#090d16] text-slate-100 p-6 lg:p-10 space-y-8">
       {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight">
-              Relief & Resource Logistics Hub
-            </h1>
-            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-600/20 text-blue-400 border border-blue-500/30">
-              SUPPLY CHAIN ACTIVE
+            <span className="h-2.5 w-2.5 rounded-full bg-blue-500 animate-ping" />
+            <span className="text-xs font-mono uppercase tracking-wider text-blue-400">
+              Agent 3 Tactical Grid
             </span>
           </div>
-          <p className="text-sm text-slate-400 mt-1">
-            Real-time emergency supply levels, evacuation shelter occupancy, and autonomous dispatch routing.
+          <h1 className="text-2xl sm:text-3xl font-black text-white uppercase mt-1">
+            Relief & Supply Logistics Matrix
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-400 mt-1">
+            Live depot capacity, shelter occupancy, and automated payload dispatch.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button className="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/25 transition">
-            + Request Resource Deployment
-          </button>
-        </div>
+        <button
+          onClick={loadLogisticsData}
+          className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2 rounded-xl text-xs font-bold text-slate-200 transition self-start sm:self-auto"
+        >
+          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+          Refresh Supplies
+        </button>
       </div>
 
-      {/* Primary Supply Stock Ticker */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {inventory.map((inv) => (
-          <div key={inv.id} className="p-4 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">{inv.item}</span>
-                <span className={`text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded border ${inv.color}`}>
-                  {inv.status}
-                </span>
-              </div>
-              <div className="text-2xl font-black text-white mt-2">{inv.qty}</div>
+      {/* Overview Metric Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Depots / Inventory */}
+        <div className="p-5 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+              <Boxes size={20} />
             </div>
-            <div className="text-[11px] text-slate-500 mt-2 font-mono">{inv.change}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Grid: Shelters Capacity & Dispatch Queue */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Left 2 Cols: Active Shelters & Occupancy Rates */}
-        <div className="lg:col-span-2 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div>
-              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-200">
-                Evacuation Shelter Capacity & Readiness
+              <h2 className="text-sm font-bold uppercase tracking-wider text-white">
+                Resource Depot Stockpile
               </h2>
-              <p className="text-xs text-slate-400">Live civilian occupancy monitoring across safe zones</p>
+              <p className="text-xs text-slate-400">Active municipal inventory ready for distribution</p>
             </div>
-            <span className="text-xs font-mono text-slate-500">3 Designated Shelters</span>
-          </div>
-
-          <div className="space-y-4">
-            {shelters.map((sh) => {
-              const occupancyPct = Math.round((sh.occupied / sh.capacity) * 100);
-              const barColor = occupancyPct > 90 ? 'bg-red-500' : occupancyPct > 70 ? 'bg-amber-500' : 'bg-emerald-500';
-
-              return (
-                <div key={sh.id} className="p-4 rounded-xl border border-slate-800/80 bg-slate-950/60 space-y-2.5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono font-bold text-blue-400">{sh.id}</span>
-                        <h3 className="font-bold text-sm text-white">{sh.name}</h3>
-                      </div>
-                      <p className="text-xs text-slate-400">📍 {sh.area} • POC: <span className="text-slate-300 font-mono">{sh.contact}</span></p>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-xs font-bold text-slate-200">{sh.occupied}</span>
-                      <span className="text-xs text-slate-500"> / {sh.capacity} Persons</span>
-                    </div>
-                  </div>
-
-                  {/* Occupancy Progress Bar */}
-                  <div>
-                    <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
-                      <div className={`h-full rounded-full ${barColor}`} style={{ width: `${occupancyPct}%` }}></div>
-                    </div>
-                    <div className="flex justify-between text-[10px] text-slate-500 mt-1 font-mono">
-                      <span>Occupancy: {occupancyPct}%</span>
-                      <span>Available: {sh.capacity - sh.occupied} Beds</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Right 1 Col: Active Logistical Dispatch Missions */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-orange-500 animate-ping"></span>
-              Outbound Logistics
-            </h2>
-            <span className="text-[10px] font-mono text-slate-500">En Route</span>
           </div>
 
           <div className="space-y-3">
-            {requests.map((req) => (
-              <div key={req.id} className="p-3.5 rounded-xl border border-slate-800/80 bg-slate-950/60 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-mono font-bold text-blue-400">{req.id}</span>
-                  <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded border ${
-                    req.priority === 'Critical' ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-orange-500/20 text-orange-400 border-orange-500/30'
-                  }`}>
-                    {req.priority}
-                  </span>
+            {inventory.length === 0 ? (
+              <div className="text-xs text-slate-500 py-4">No inventory data available.</div>
+            ) : (
+              inventory.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/50 flex items-center justify-between hover:border-slate-700 transition"
+                >
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-200">{item.category}</span>
+                      <span
+                        className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded border ${
+                          item.status === "Optimal"
+                            ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
+                            : "text-amber-400 bg-amber-500/10 border-amber-500/20"
+                        }`}
+                      >
+                        {item.status}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">
+                      Threshold: {item.critical_threshold} units
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-base font-black font-mono text-blue-400">
+                      {item.available_units?.toLocaleString() ?? 0}
+                    </span>
+                    <span className="text-[11px] text-slate-500 ml-1">Units</span>
+                  </div>
                 </div>
-                <h4 className="text-xs font-bold text-slate-200">{req.destination}</h4>
-                <p className="text-xs text-slate-400">Cargo: <span className="text-slate-300">{req.item}</span></p>
-                <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-800/60">
-                  <span>🚛 {req.transport}</span>
-                  <span className="font-semibold text-emerald-400 font-mono">ETA: {req.eta}</span>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
+        {/* Shelters */}
+        <div className="p-5 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <Home size={20} />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-white">
+                Designated Safe Shelters
+              </h2>
+              <p className="text-xs text-slate-400">Capacity and intake tracking across safe hubs</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {shelters.length === 0 ? (
+              <div className="text-xs text-slate-500 py-4">No shelter nodes registered.</div>
+            ) : (
+              shelters.map((s, idx) => {
+                const occupancy = s.current_occupancy || 0;
+                const max = s.max_capacity || 500;
+                const pct = Math.min(Math.round((occupancy / max) * 100), 100);
+
+                return (
+                  <div
+                    key={idx}
+                    className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/50 space-y-2"
+                  >
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-slate-200">{s.name || s.shelter_name}</span>
+                      <span className="font-mono text-emerald-400">{occupancy} / {max} occupants</span>
+                    </div>
+                    <div className="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                      <div
+                        className={`h-full ${pct > 80 ? "bg-red-500" : "bg-emerald-500"}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
       </div>
 
+      {/* Incident Demand & Automated Allocation Table */}
+      <div className="p-5 rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md space-y-4">
+        <div>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-white">
+            Live Incident Supply Dispatch Queue
+          </h2>
+          <p className="text-xs text-slate-400">
+            Click to authorize Agent 3 automated logistics calculations and supply reservations.
+          </p>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="text-[11px] uppercase font-bold text-slate-400 border-b border-slate-800">
+              <tr>
+                <th className="pb-3">Incident</th>
+                <th className="pb-3">Coordinates</th>
+                <th className="pb-3">Priority</th>
+                <th className="pb-3">Recommended Assets</th>
+                <th className="pb-3 text-right">Agent 3 Decision</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/60">
+              {incidents.map((inc) => {
+                const plan = dispatchResults[inc.id] || inc.assignedDispatch;
+                const severity = inc.triage?.severity_level || "High";
+
+                return (
+                  <tr key={inc.id} className="hover:bg-slate-800/40 transition">
+                    <td className="py-3 font-medium text-slate-200">
+                      <div className="font-mono font-bold text-blue-400">{inc.id}</div>
+                      <div className="text-slate-400 text-[11px]">{inc.title}</div>
+                    </td>
+                    <td className="py-3 font-mono text-slate-400">
+                      {inc.latitude?.toFixed(4)}, {inc.longitude?.toFixed(4)}
+                    </td>
+                    <td className="py-3">
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                          severity === "Critical"
+                            ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                            : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                        }`}
+                      >
+                        {severity}
+                      </span>
+                    </td>
+                    <td className="py-3 text-slate-300">
+                      {inc.triage?.recommended_assets?.join(", ") || "Standard Unit"}
+                    </td>
+                    <td className="py-3 text-right">
+                      {plan ? (
+                        <div className="inline-flex flex-col items-end text-emerald-400">
+                          <span className="flex items-center gap-1 font-bold">
+                            <CheckCircle2 size={12} /> {plan.assigned_unit}
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            ETA: {plan.estimated_arrival_minutes}m • {plan.supplies_allocated?.join(", ")}
+                          </span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleAllocate(inc)}
+                          disabled={allocatingId === inc.id}
+                          className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold transition disabled:opacity-50 inline-flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Truck size={13} />
+                          {allocatingId === inc.id ? "Routing..." : "Dispatch Supplies"}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

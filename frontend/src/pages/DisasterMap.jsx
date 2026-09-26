@@ -1,235 +1,278 @@
-import {
-  Activity,
-  MapPin,
-  Radio,
-  ShieldCheck,
-} from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+import { listIncidents, getActiveWarnings, optimizeDispatch } from "../services/api";
+import { AlertTriangle, ShieldCheck, Truck, Clock, Navigation, RefreshCw } from "lucide-react";
 
-import DisasterMap from "../components/map/DisasterMap";
-import MapLegend from "../components/map/MapLegend";
+// Severity styling configurations
+const SEVERITY_CONFIG = {
+  Critical: { color: "#ef4444", radius: 2200, label: "CRITICAL HAZARD" },
+  High: { color: "#f97316", radius: 1500, label: "HIGH RISK" },
+  Moderate: { color: "#eab308", radius: 900, label: "MODERATE" },
+  Low: { color: "#22c55e", radius: 500, label: "MONITORING" },
+};
 
-function DisasterMapPage() {
+// Custom dynamic marker pins for Leaflet
+const createIncidentIcon = (severity) => {
+  const conf = SEVERITY_CONFIG[severity] || SEVERITY_CONFIG.Moderate;
+  return L.divIcon({
+    className: "custom-map-pin",
+    html: `
+      <div style="
+        background-color: ${conf.color};
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 3px solid #ffffff;
+        box-shadow: 0 0 14px ${conf.color};
+        animation: pulse 2s infinite;
+      "></div>
+    `,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+  });
+};
+
+export default function DisasterMap() {
+  const [incidents, setIncidents] = useState([]);
+  const [warnings, setWarnings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedIncident, setSelectedIncident] = useState(null);
+  const [dispatchingId, setDispatchingId] = useState(null);
+
+  const defaultCenter = [19.0760, 72.8777]; // Mumbai Center
+
+  const loadMapData = async () => {
+    try {
+      setLoading(true);
+      const [incidentData, warningData] = await Promise.all([
+        listIncidents(),
+        getActiveWarnings(),
+      ]);
+      setIncidents(incidentData);
+      setWarnings(warningData);
+    } catch (err) {
+      console.error("Map telemetry sync failure:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadMapData();
+    const interval = setInterval(loadMapData, 8000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleQuickDispatch = async (incident) => {
+    try {
+      setDispatchingId(incident.id);
+      const severity = incident.triage?.severity_level || "Critical";
+      const plan = await optimizeDispatch(incident.id, severity);
+
+      setIncidents((prev) =>
+        prev.map((item) =>
+          item.id === incident.id ? { ...item, assignedDispatch: plan } : item
+        )
+      );
+    } catch (err) {
+      alert("Failed to allocate relief units: " + err.message);
+    } finally {
+      setDispatchingId(null);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-[#f5f7fb]">
+    <div className="h-screen w-screen flex flex-col bg-[#090d16] text-slate-100 overflow-hidden">
+      
+      {/* Top Floating Control Bar */}
+      <header className="h-16 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md px-6 flex items-center justify-between z-10 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="h-3 w-3 rounded-full bg-red-500 animate-ping" />
+          <h1 className="text-base font-black tracking-wider uppercase text-white">
+            Geospatial Threat Matrix (GIS)
+          </h1>
+          <span className="hidden sm:inline-block text-xs font-mono text-slate-500">
+            • LIVE MULTI-AGENT INGESTION
+          </span>
+        </div>
 
-      {/* Page Header */}
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-[1600px] mx-auto px-6 lg:px-10 py-6">
-
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-
-            {/* Title */}
-            <div className="flex items-start gap-4">
-
-              <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm">
-                <MapPin
-                  size={24}
-                  className="text-white"
-                />
-              </div>
-
-              <div>
-                <div className="flex items-center gap-3">
-
-                  <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
-                    Disaster Monitoring Map
-                  </h1>
-
-                  <span className="hidden sm:inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    LIVE
-                  </span>
-
-                </div>
-
-                <p className="text-sm text-slate-500 mt-1">
-                  Real-time disaster incidents, emergency locations and safe zones
-                </p>
-              </div>
-
-            </div>
-
-            {/* Status */}
-            <div className="flex items-center gap-6">
-
-              <div className="flex items-center gap-2">
-                <Activity
-                  size={18}
-                  className="text-blue-600"
-                />
-
-                <div>
-                  <p className="text-xs text-slate-400">
-                    MONITORING
-                  </p>
-
-                  <p className="text-sm font-semibold text-slate-700">
-                    Active
-                  </p>
-                </div>
-              </div>
-
-              <div className="hidden sm:flex items-center gap-2">
-
-                <Radio
-                  size={18}
-                  className="text-cyan-600"
-                />
-
-                <div>
-                  <p className="text-xs text-slate-400">
-                    NETWORK
-                  </p>
-
-                  <p className="text-sm font-semibold text-emerald-600">
-                    Connected
-                  </p>
-                </div>
-
-              </div>
-
-            </div>
-
+        <div className="flex items-center gap-3">
+          <div className="text-xs text-slate-400 font-mono hidden md:block">
+            ACTIVE PINS: <span className="text-white font-bold">{incidents.length}</span> | HYDRO ZONES: <span className="text-white font-bold">{warnings.length}</span>
           </div>
 
+          <button
+            onClick={loadMapData}
+            className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3.5 py-1.5 rounded-xl text-xs font-bold transition text-slate-200"
+          >
+            <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+            Refresh Matrix
+          </button>
         </div>
       </header>
 
+      {/* Main Map + Details Sidebar Layout */}
+      <div className="flex-1 relative flex overflow-hidden">
+        
+        {/* Leaflet Map Engine */}
+        <div className="flex-1 h-full w-full">
+          <MapContainer
+            center={defaultCenter}
+            zoom={11}
+            scrollWheelZoom={true}
+            style={{ height: "100%", width: "100%", background: "#090d16" }}
+          >
+            <TileLayer
+  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+/>
 
-      {/* Main Content */}
-      <main className="max-w-[1600px] mx-auto px-6 lg:px-10 py-7">
+            {/* Render Agent 2 Incidents & Dynamic Perimeter Radii */}
+            {incidents.map((incident) => {
+              const lat = parseFloat(incident.latitude) || 19.0760;
+              const lng = parseFloat(incident.longitude) || 72.8777;
+              const severity = incident.triage?.severity_level || "Moderate";
+              const conf = SEVERITY_CONFIG[severity] || SEVERITY_CONFIG.Moderate;
 
-        {/* Information Bar */}
-        <div className="bg-white border border-slate-200 rounded-xl px-5 py-4 mb-6 shadow-sm">
-
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-
-            <div>
-              <h2 className="text-base font-semibold text-slate-800">
-                Live Incident Map
-              </h2>
-
-              <p className="text-sm text-slate-500 mt-1">
-                Monitor reported incidents and emergency locations in real time.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-5 text-sm">
-
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                <span className="text-slate-600">
-                  Disaster
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                <span className="text-slate-600">
-                  Alert
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                <span className="text-slate-600">
-                  Safe Zone
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <MapPin
-                  size={15}
-                  className="text-blue-600"
-                />
-
-                <span className="text-slate-600">
-                  Your Location
-                </span>
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-
-        {/* Map + Legend */}
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-6 items-start">
-
-          {/* Map */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-
-            <DisasterMap />
-
-          </div>
-
-
-          {/* Sidebar */}
-          <aside className="space-y-5">
-
-            <MapLegend />
-
-            {/* Map Status Card */}
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-
-              <div className="flex items-center gap-3 mb-4">
-
-                <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center">
-                  <ShieldCheck
-                    size={19}
-                    className="text-emerald-600"
+              return (
+                <React.Fragment key={incident.id}>
+                  {/* Dynamic Tactical Danger Zone */}
+                  <Circle
+                    center={[lat, lng]}
+                    radius={conf.radius}
+                    pathOptions={{
+                      color: conf.color,
+                      fillColor: conf.color,
+                      fillOpacity: 0.18,
+                      weight: 1.5,
+                      dashArray: "4, 6",
+                    }}
                   />
-                </div>
 
-                <div>
-                  <h3 className="font-semibold text-slate-800">
-                    Map Status
-                  </h3>
-
-                  <p className="text-xs text-slate-500">
-                    Monitoring system
-                  </p>
-                </div>
-
-              </div>
-
-              <div className="flex items-center justify-between py-3 border-t border-slate-100">
-
-                <span className="text-sm text-slate-500">
-                  Data connection
-                </span>
-
-                <span className="flex items-center gap-2 text-sm font-medium text-emerald-600">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  Live
-                </span>
-
-              </div>
-
-              <div className="flex items-center justify-between py-3 border-t border-slate-100">
-
-                <span className="text-sm text-slate-500">
-                  Location services
-                </span>
-
-                <span className="text-sm font-medium text-blue-600">
-                  Enabled
-                </span>
-
-              </div>
-
-            </div>
-
-          </aside>
-
+                  {/* High-visibility Marker */}
+                  <Marker
+                    position={[lat, lng]}
+                    icon={createIncidentIcon(severity)}
+                    eventHandlers={{
+                      click: () => setSelectedIncident(incident),
+                    }}
+                  >
+                    <Popup className="dark-leaflet-popup">
+                      <div className="p-1 font-sans text-slate-900 max-w-xs">
+                        <div className="flex items-center justify-between border-b pb-1">
+                          <span
+                            className="text-[10px] font-black px-2 py-0.5 rounded text-white"
+                            style={{ backgroundColor: conf.color }}
+                          >
+                            {severity.toUpperCase()}
+                          </span>
+                          <span className="font-mono text-[11px] text-slate-500">
+                            {incident.id}
+                          </span>
+                        </div>
+                        <h4 className="font-bold text-xs mt-1.5">{incident.title}</h4>
+                        <p className="text-[11px] text-slate-600 mt-1 line-clamp-2">
+                          {incident.description}
+                        </p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                </React.Fragment>
+              );
+            })}
+          </MapContainer>
         </div>
 
-      </main>
+        {/* Selected Incident Telemetry Flyout Panel */}
+        {selectedIncident && (
+          <aside className="absolute right-4 top-4 bottom-4 w-96 bg-slate-950/90 border border-slate-800/90 rounded-2xl backdrop-blur-xl p-5 shadow-2xl flex flex-col justify-between z-[1000] overflow-y-auto">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div>
+                  <span className="text-[10px] font-mono uppercase text-blue-400 font-bold">
+                    Incident Inspector
+                  </span>
+                  <h3 className="text-base font-black text-white">{selectedIncident.id}</h3>
+                </div>
+                <button
+                  onClick={() => setSelectedIncident(null)}
+                  className="text-slate-400 hover:text-white text-sm px-2 py-1 rounded-lg hover:bg-slate-800"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div>
+                <span className={`text-[11px] font-black px-2.5 py-1 rounded-md uppercase tracking-wider ${
+                  selectedIncident.triage?.severity_level === 'Critical'
+                    ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                    : 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+                }`}>
+                  {selectedIncident.triage?.severity_level || "ASSESSED"}
+                </span>
+                <h4 className="text-sm font-bold text-slate-200 mt-2">
+                  {selectedIncident.title}
+                </h4>
+                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  {selectedIncident.description}
+                </p>
+              </div>
+
+              <div className="bg-slate-900/80 rounded-xl p-3.5 border border-slate-800 space-y-2">
+                <div className="text-xs font-bold text-slate-300">Agent 2 Hazard Classification:</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedIncident.triage?.detected_hazards?.map((h, i) => (
+                    <span key={i} className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">
+                      {h}
+                    </span>
+                  ))}
+                </div>
+                <div className="text-[11px] text-slate-400 pt-1">
+                  Confidence Score: <span className="text-emerald-400 font-mono font-bold">
+                    {Math.round((selectedIncident.triage?.confidence_score || 0.85) * 100)}%
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-slate-900/80 rounded-xl p-3.5 border border-slate-800 space-y-2">
+                <div className="text-xs font-bold text-slate-300">Tactical Directives:</div>
+                <p className="text-xs text-slate-400 italic">
+                  "{selectedIncident.triage?.action_summary || 'Awaiting automated orders'}"
+                </p>
+              </div>
+            </div>
+
+            {/* Agent 3 Dispatch Trigger */}
+            <div className="pt-4 border-t border-slate-800">
+              {selectedIncident.assignedDispatch ? (
+                <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-3 text-xs space-y-1">
+                  <div className="font-bold text-emerald-400 flex items-center gap-1.5">
+                    <ShieldCheck size={15} /> Unit En Route: {selectedIncident.assignedDispatch.assigned_unit}
+                  </div>
+                  <div className="text-slate-400 text-[11px]">
+                    Supplies: {selectedIncident.assignedDispatch.supplies_allocated.join(", ")}
+                  </div>
+                  <div className="text-emerald-300 font-mono text-[11px]">
+                    ETA: {selectedIncident.assignedDispatch.estimated_arrival_minutes} minutes
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => handleQuickDispatch(selectedIncident)}
+                  disabled={dispatchingId === selectedIncident.id}
+                  className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition disabled:opacity-50"
+                >
+                  <Truck size={15} />
+                  {dispatchingId === selectedIncident.id ? "Calculating Logistics..." : "Authorize Relief Dispatch (Agent 3)"}
+                </button>
+              )}
+            </div>
+          </aside>
+        )}
+      </div>
 
     </div>
   );
 }
-
-export default DisasterMapPage;

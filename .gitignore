@@ -1,0 +1,30 @@
+# Virtual Environments (Backend)
+venv/
+env/
+ENV/
+*.venv/
+
+# Python Cache & Artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Node & Frontend dependencies
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Secrets & Environments (NEVER PUSH THESE)
+.env
+*.env
+backend/.env
+frontend/.env
+
+# System / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

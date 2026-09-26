@@ -1,290 +1,123 @@
-import { Link } from "react-router-dom";
-import {
-  ArrowRight,
-  Map,
-  ShieldCheck,
-  Radio,
-  Activity,
-  AlertTriangle,
-} from "lucide-react";
+import React from 'react';
+import { Link } from 'react-router-dom';
 
-function Hero() {
+const SYSTEM_CAPABILITIES = [
+  {
+    icon: '🛰️',
+    title: 'Autonomous Geospatial Triage',
+    desc: 'Multi-agent neural vision models process field imagery and telemetry to estimate water depth, structural collapse, and critical risk perimeters in real time.'
+  },
+  {
+    icon: '📦',
+    title: 'Dynamic Resource Dispatch',
+    desc: 'Logistics agents balance shelter bed availability, medical gear, and rescue vehicle routes to eliminate aid distribution bottlenecks.'
+  },
+  {
+    icon: '📡',
+    title: 'Emergency Mesh Readiness',
+    desc: 'Built to ingest crowd-sourced citizen alerts with client-side compression and store-and-forward protocols under degraded field connectivity.'
+  },
+  {
+    icon: '🏛️',
+    title: 'Inter-Agency Command Bridge',
+    desc: 'Unified operational picture connecting municipal authorities, disaster response forces (NDRF), and local volunteers into one synchronization hub.'
+  }
+];
+
+export default function Hero() {
   return (
-    <section className="relative overflow-hidden bg-[#050b1f] text-white">
-
-      {/* Background */}
-
-      <div className="absolute inset-0 pointer-events-none">
-
-        <div className="absolute top-[-180px] right-[-120px] w-[600px] h-[600px] rounded-full bg-blue-600/[0.08] blur-3xl" />
-
-        <div className="absolute bottom-[-200px] left-[-150px] w-[500px] h-[500px] rounded-full bg-cyan-500/[0.05] blur-3xl" />
-
-        <div
-          className="absolute inset-0 opacity-[0.035]"
-          style={{
-            backgroundImage:
-              "linear-gradient(#94a3b8 1px, transparent 1px), linear-gradient(90deg, #94a3b8 1px, transparent 1px)",
-            backgroundSize: "64px 64px",
-          }}
-        />
-
+    <main>
+      {/* Live Operational Ticker */}
+      <div className="border-b border-slate-800/80 bg-slate-950/90 py-2.5 px-4 overflow-hidden">
+        <div className="max-w-7xl mx-auto flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+            <span className="font-mono uppercase font-bold text-slate-300">SYSTEM STATUS: ALL TELEMETRY NODES ACTIVE</span>
+          </div>
+          <div className="hidden sm:flex items-center gap-4 text-slate-400 font-mono text-[11px]">
+            <span>ACTIVE MONITORS: 14</span>
+            <span>DISPATCHED UNITS: 38</span>
+            <span>AI AGENTS SYNCED: 4/4</span>
+          </div>
+        </div>
       </div>
 
-
-      {/* Content */}
-
-      <div className="relative max-w-7xl mx-auto px-6 lg:px-10">
-
-        <div className="grid lg:grid-cols-[1.15fr_0.85fr] gap-12 lg:gap-20 items-center min-h-[650px] py-20">
-
-          {/* LEFT */}
-
-          <div>
-
-            {/* Label */}
-
-            <div className="flex items-center gap-3 mb-7">
-
-              <span className="w-10 h-px bg-cyan-400" />
-
-              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-400">
-                Intelligent Emergency Management
-              </span>
-
-            </div>
-
-
-            {/* Heading */}
-
-            <h1 className="text-5xl md:text-6xl xl:text-7xl font-bold tracking-tight leading-[1.04]">
-
-              Smarter Technology
-
-              <span className="block mt-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-400 to-teal-300">
-                for Disaster Response
-              </span>
-
-            </h1>
-
-
-            {/* Description */}
-
-            <p className="mt-7 max-w-2xl text-lg text-slate-400 leading-relaxed">
-              An Agentic AI based disaster management platform designed to
-              predict risks, strengthen emergency communication, identify
-              safe zones and coordinate disaster response.
-            </p>
-
-
-            {/* Buttons */}
-
-            <div className="flex flex-wrap gap-4 mt-9">
-
-              <Link
-                to="/report"
-                className="
-                  group
-                  inline-flex
-                  items-center
-                  gap-2
-                  px-6
-                  py-3.5
-                  rounded-lg
-                  bg-blue-600
-                  hover:bg-blue-500
-                  text-white
-                  font-semibold
-                  transition
-                  shadow-lg
-                  shadow-blue-600/20
-                "
-              >
-                Report a Disaster
-
-                <ArrowRight
-                  size={18}
-                  className="group-hover:translate-x-1 transition"
-                />
-              </Link>
-
-
-              <Link
-                to="/map"
-                className="
-                  inline-flex
-                  items-center
-                  gap-2
-                  px-6
-                  py-3.5
-                  rounded-lg
-                  border
-                  border-slate-700
-                  hover:border-cyan-500/50
-                  hover:bg-slate-900/60
-                  text-slate-200
-                  font-semibold
-                  transition
-                "
-              >
-                <Map size={18} />
-
-                Explore Disaster Map
-              </Link>
-
-            </div>
-
-
-            {/* Capabilities */}
-
-            <div className="mt-10 pt-6 border-t border-slate-800/80">
-
-              <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600 mb-4">
-                Core Capabilities
-              </p>
-
-              <div className="flex flex-wrap gap-x-8 gap-y-3">
-
-                <Capability
-                  icon={Activity}
-                  title="AI Prediction"
-                  color="text-blue-400"
-                />
-
-                <Capability
-                  icon={Radio}
-                  title="BLE Mesh"
-                  color="text-cyan-400"
-                />
-
-                <Capability
-                  icon={ShieldCheck}
-                  title="Safe Zones"
-                  color="text-emerald-400"
-                />
-
-              </div>
-
-            </div>
-
-          </div>
-
-
-          {/* RIGHT — MINIMAL VISUAL */}
-
-          <div className="hidden lg:flex justify-center">
-
-            <div className="relative w-[390px] h-[390px]">
-
-              {/* Outer ring */}
-
-              <div className="absolute inset-8 rounded-full border border-cyan-400/10" />
-
-              <div className="absolute inset-16 rounded-full border border-blue-400/10" />
-
-              {/* Glow */}
-
-              <div className="absolute inset-[100px] rounded-full bg-cyan-400/[0.06] blur-2xl" />
-
-
-              {/* Center */}
-
-              <div className="
-                absolute
-                inset-[105px]
-                rounded-full
-                border
-                border-cyan-400/30
-                bg-slate-900/70
-                backdrop-blur-sm
-                flex
-                flex-col
-                items-center
-                justify-center
-                shadow-2xl
-                shadow-cyan-500/10
-              ">
-
-                <ShieldCheck
-                  size={52}
-                  strokeWidth={1.4}
-                  className="text-cyan-400"
-                />
-
-                <p className="mt-4 text-sm font-semibold text-white">
-                  Disaster Response
-                </p>
-
-                <p className="mt-1 text-xs text-slate-500">
-                  AI-powered platform
-                </p>
-
-              </div>
-
-
-              {/* Floating indicators */}
-
-              <div className="absolute top-10 right-2 flex items-center gap-2 text-xs text-slate-400">
-
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
-
-                Connected
-
-              </div>
-
-
-              <div className="absolute bottom-12 left-0 flex items-center gap-2 text-xs text-slate-400">
-
-                <Radio
-                  size={15}
-                  className="text-cyan-400"
-                />
-
-                BLE Network
-
-              </div>
-
-
-              <div className="absolute bottom-24 right-0 flex items-center gap-2 text-xs text-slate-400">
-
-                <AlertTriangle
-                  size={15}
-                  className="text-amber-400"
-                />
-
-                Risk Detection
-
-              </div>
-
-            </div>
-
-          </div>
-
+      {/* Hero Content Section */}
+      <section className="relative pt-16 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center space-y-8">
+        
+        {/* Status Pill */}
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-red-500/30 bg-red-500/10 text-red-400 text-xs font-semibold shadow-lg shadow-red-500/10">
+          <span className="text-base">⚡</span>
+          <span>Next-Gen Agentic Disaster Response Infrastructure</span>
         </div>
 
-      </div>
+        {/* Main Headline */}
+        <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white max-w-4xl mx-auto leading-tight sm:leading-none">
+          Autonomous Coordination When <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-orange-500 to-amber-400">Seconds Count.</span>
+        </h1>
 
-    </section>
+        <p className="text-base sm:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
+          A synchronized crisis response ecosystem powered by autonomous AI agents—triaging incidents, deploying critical supplies, and guiding citizens to safety.
+        </p>
+
+        {/* Primary Action Buttons */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+          <Link
+            to="/report"
+            className="w-full sm:w-auto px-7 py-3.5 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 shadow-xl shadow-red-600/30 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+          >
+            <span>🚨</span>
+            <span>Report Emergency Incident</span>
+          </Link>
+          <Link
+            to="/map"
+            className="w-full sm:w-auto px-7 py-3.5 rounded-xl font-bold text-sm bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 hover:border-slate-600 shadow-lg transition-all flex items-center justify-center gap-2"
+          >
+            <span>🗺️</span>
+            <span>View Live Operations Map</span>
+          </Link>
+        </div>
+
+        {/* Telemetry Metric Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-12 text-left">
+          {[
+            { label: 'Avg Triage Speed', val: '< 1.8s', desc: 'Neural hazard classification' },
+            { label: 'Relief Routing', val: 'Real-Time', desc: 'Autonomous logistics agents' },
+            { label: 'Payload Footprint', val: '~180 KB', desc: 'Low-bandwidth image pipeline' },
+            { label: 'EOC Synchronization', val: '99.9%', desc: 'Unified situational picture' },
+          ].map((stat, i) => (
+            <div key={i} className="p-4 rounded-2xl border border-slate-800/80 bg-slate-900/40 backdrop-blur-sm">
+              <div className="text-2xl sm:text-3xl font-black text-white">{stat.val}</div>
+              <div className="text-xs font-bold text-slate-300 mt-1">{stat.label}</div>
+              <div className="text-[11px] text-slate-500 mt-0.5">{stat.desc}</div>
+            </div>
+          ))}
+        </div>
+
+      </section>
+
+      {/* Architecture Capabilities Grid */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-800/80">
+        <div className="text-center max-w-2xl mx-auto mb-12 space-y-2">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-red-500 font-mono">Agentic Architecture</h2>
+          <p className="text-2xl sm:text-3xl font-extrabold text-white">Engineered for High-Consequence Environments</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {SYSTEM_CAPABILITIES.map((cap, i) => (
+            <div
+              key={i}
+              className="p-6 rounded-2xl border border-slate-800 bg-slate-900/50 hover:border-slate-700 transition space-y-3 group"
+            >
+              <div className="text-3xl p-2.5 rounded-xl bg-slate-800/60 w-fit group-hover:scale-110 transition-transform">
+                {cap.icon}
+              </div>
+              <h3 className="text-lg font-bold text-white">{cap.title}</h3>
+              <p className="text-sm text-slate-400 leading-relaxed">{cap.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    </main>
   );
 }
-
-
-function Capability({ icon: Icon, title, color }) {
-  return (
-    <div className="flex items-center gap-2">
-
-      <Icon
-        size={17}
-        className={color}
-      />
-
-      <span className="text-sm text-slate-400">
-        {title}
-      </span>
-
-    </div>
-  );
-}
-
-
-export default Hero;
