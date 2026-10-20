@@ -31,7 +31,6 @@ function Login() {
 
       const user = userCredential.user;
 
-      // Fetch user profile or role from Firestore
       try {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists()) {
