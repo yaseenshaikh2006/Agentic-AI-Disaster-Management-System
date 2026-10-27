@@ -15,18 +15,43 @@ import { triageDisasterReport } from "../services/api";
 
 // Local Mumbai coordinate resolver for common locations
 const MUMBAI_GEO_DATABASE = {
+  // Western Suburbs
   jogeshwari: { lat: 19.1352, lng: 72.8546 },
   andheri: { lat: 19.1136, lng: 72.8697 },
-  kurla: { lat: 19.0728, lng: 72.8826 },
   bandra: { lat: 19.0596, lng: 72.8295 },
-  dadar: { lat: 19.0178, lng: 72.8478 },
-  dharavi: { lat: 19.0402, lng: 72.8509 },
-  colaba: { lat: 18.9067, lng: 72.8147 },
-  ghatkopar: { lat: 19.0860, lng: 72.9090 },
-  thane: { lat: 19.2183, lng: 72.9781 },
-  chembur: { lat: 19.0622, lng: 72.9024 },
+  malad: { lat: 19.1874, lng: 72.8484 },
   borivali: { lat: 19.2307, lng: 72.8567 },
-  malad: { lat: 19.1874, lng: 72.8484 }
+  kandivali: { lat: 19.2045, lng: 72.8522 },
+  goregaon: { lat: 19.1663, lng: 72.8526 },
+  santacruz: { lat: 19.0805, lng: 72.8410 },
+  vileparle: { lat: 19.1007, lng: 72.8443 },
+  juhu: { lat: 19.0988, lng: 72.8264 },
+
+  // Central Suburbs & River Corridor
+  kurla: { lat: 19.0728, lng: 72.8826 },
+  bkc: { lat: 19.0657, lng: 72.8687 },
+  ghatkopar: { lat: 19.0860, lng: 72.9090 },
+  chembur: { lat: 19.0622, lng: 72.9024 },
+  sion: { lat: 19.0400, lng: 72.8625 },
+  dharavi: { lat: 19.0402, lng: 72.8509 },
+  matunga: { lat: 19.0270, lng: 72.8550 },
+  vikhroli: { lat: 19.1105, lng: 72.9254 },
+  bhandup: { lat: 19.1458, lng: 72.9366 },
+  mulund: { lat: 19.1726, lng: 72.9565 },
+  thane: { lat: 19.2183, lng: 72.9781 },
+
+  // South Mumbai & High-Vulnerability Low-Points
+  mahalaxmi: { lat: 18.9827, lng: 72.8242 },
+  hindmata: { lat: 19.0135, lng: 72.8436 },
+  dadar: { lat: 19.0178, lng: 72.8478 },
+  parel: { lat: 19.0090, lng: 72.8376 },
+  worli: { lat: 19.0166, lng: 72.8167 },
+  byculla: { lat: 18.9750, lng: 72.8295 },
+  churchgate: { lat: 18.9322, lng: 72.8264 },
+  cst: { lat: 18.9401, lng: 72.8354 },
+  colaba: { lat: 18.9067, lng: 72.8147 },
+  marine_lines: { lat: 18.9447, lng: 72.8236 },
+  wadala: { lat: 19.0176, lng: 72.8562 }
 };
 
 function resolveCoordinates(locationInput) {

@@ -11,9 +11,9 @@ CURRENT_INVENTORY = [
 ]
 
 ACTIVE_SHELTERS = [
-    ShelterStatus(shelter_id="SH-01", name="Bandra Municipal High School", capacity=450, occupied=412, occupancy_rate=91.5, status="Critical"),
-    ShelterStatus(shelter_id="SH-02", name="Andheri Sports Complex EOC", capacity=1200, occupied=760, occupancy_rate=63.3, status="Operational"),
-    ShelterStatus(shelter_id="SH-03", name="Kurla Community Center", capacity=300, occupied=285, occupancy_rate=95.0, status="Full"),
+    ShelterStatus(shelter_id="SH-01", name="Bandra Municipal High School", capacity=450, occupied=238, occupancy_rate=52.88, status="Moderate"),
+    ShelterStatus(shelter_id="SH-02", name="Andheri Sports Complex EOC", capacity=1200, occupied=1188, occupancy_rate=99.0, status="Critical"),
+    ShelterStatus(shelter_id="SH-03", name="Kurla Community Center", capacity=300, occupied=42, occupancy_rate=14.0, status="Optimal"),
 ]
 
 @router.get("/inventory", response_model=list[ReliefSupplyItem])
