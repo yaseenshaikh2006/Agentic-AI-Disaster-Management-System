@@ -55,8 +55,8 @@ function Login() {
         console.warn("Could not retrieve user document:", docErr.message);
       }
 
-      alert("Officer Authentication Verified. Accessing Command Center.");
-      navigate("/government", { replace: true });
+      alert("Officer Authentication Verified. Session Active.");
+      navigate("/", { replace: true });
     } catch (error) {
       console.error("Authentication error:", error);
 

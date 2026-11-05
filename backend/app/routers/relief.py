@@ -1,5 +1,12 @@
-from fastapi import APIRouter
-from app.agents.relief import compute_relief_plan, ReliefSupplyItem, ShelterStatus, DispatchRecommendation
+from fastapi import APIRouter, Query
+from typing import Optional, List
+from app.agents.relief import (
+    compute_relief_plan, 
+    ReliefSupplyItem, 
+    ShelterStatus, 
+    DispatchRecommendation
+)
+from app.routers.incidents import INCIDENTS_DATABASE
 
 router = APIRouter(prefix="/api/relief", tags=["Relief & Supply Logistics (Agent 3)"])
 
@@ -25,5 +32,17 @@ async def get_shelter_capacity():
     return ACTIVE_SHELTERS
 
 @router.post("/optimize-dispatch/{incident_id}", response_model=DispatchRecommendation)
-async def generate_dispatch_order(incident_id: str, severity: str = "Critical"):
-    return compute_relief_plan(incident_id, severity, ["flood_inundation"])
+async def generate_dispatch_order(
+    incident_id: str, 
+    severity: str = "Critical",
+    hazard: Optional[List[str]] = Query(None)
+):
+    detected_hazards = list(hazard) if hazard else []
+
+    # If hazards were not provided in query, retrieve them from live in-memory incidents
+    if not detected_hazards:
+        match = next((inc for inc in INCIDENTS_DATABASE if inc.id == incident_id), None)
+        if match and hasattr(match, "triage") and match.triage:
+            detected_hazards = getattr(match.triage, "detected_hazards", [])
+
+    return compute_relief_plan(incident_id, severity, detected_hazards)

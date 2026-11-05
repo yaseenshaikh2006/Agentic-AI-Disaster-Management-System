@@ -47,7 +47,14 @@ export default function ReliefDistribution() {
         incident.userReportedSeverity || 
         incident.severity || 
         "High";
-      const result = await optimizeDispatch(incident.id, severity);
+      
+      // Extract detected hazards or fallback context from disaster type and title
+      const hazards = 
+        incident.triage?.detected_hazards || 
+        [incident.disasterType || incident.title || "general_emergency"];
+
+      // Call optimizeDispatch with incident.id, severity, and hazards context
+      const result = await optimizeDispatch(incident.id, severity, hazards);
       setDispatchResults((prev) => ({ ...prev, [incident.id]: result }));
     } catch (err) {
       alert("Allocation error: " + err.message);

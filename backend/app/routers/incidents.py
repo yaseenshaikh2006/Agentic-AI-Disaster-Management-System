@@ -11,14 +11,14 @@ INCIDENTS_DATABASE = []
 
 @router.post("/report", response_model=IncidentRecord)
 async def submit_incident_report(report: IncidentReportCreate):
-    # Trigger Agent 2: Damage Assessment and Triage
+    # Trigger Agent 2: Damage Assessment and Multimodal Triage
     triage_result = await assess_incident(
         title=report.title,
         description=report.description,
         image_url=report.image_url
     )
 
-    # Persist record
+    # Persist record with image evidence intact
     record = IncidentRecord(
         id=f"INC-{uuid.uuid4().hex[:6].upper()}",
         title=report.title,

@@ -3,6 +3,20 @@ import { Link } from 'react-router-dom';
 import { listIncidents, getActiveWarnings } from '../services/api';
 import { Loader2 } from 'lucide-react';
 
+function formatReportTime(createdAt) {
+  if (!createdAt) return "Just now";
+  // Handles Firestore Timestamp objects (.toDate())
+  if (typeof createdAt.toDate === "function") {
+    return createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  // Handles ISO date strings or numeric timestamps
+  const date = new Date(createdAt);
+  if (!isNaN(date.getTime())) {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  return "Recent";
+}
+
 export default function Dashboard() {
   const [reports, setReports] = useState([]);
   const [broadcasts, setBroadcasts] = useState([]);
@@ -15,34 +29,64 @@ export default function Dashboard() {
         getActiveWarnings().catch(() => [])
       ]);
 
-      setReports(Array.isArray(incidentData) ? incidentData : []);
+      const allReports = Array.isArray(incidentData) ? incidentData : [];
+
+      // Filter out older submissions: only show reports from the last 4 hours
+      const recentReports = allReports.filter((inc) => {
+        const rawTime = inc.created_at || inc.createdAt;
+        if (!rawTime) return true;
+        const timeMs = typeof rawTime.toDate === "function" 
+          ? rawTime.toDate().getTime() 
+          : new Date(rawTime).getTime();
+        if (isNaN(timeMs)) return true;
+        
+        const fourHoursAgo = Date.now() - (4 * 60 * 60 * 1000);
+        return timeMs > fourHoursAgo;
+      });
+
+      setReports(recentReports);
 
       // Normalize array or { warnings: [...] } safely
       const warningList = Array.isArray(rawWarningData)
         ? rawWarningData
         : (rawWarningData?.warnings || []);
 
-      // Map Agent 1 telemetry outputs directly into citizen broadcast cards
-      const dynamicBroadcasts = warningList.map((w, idx) => {
+      // Sort warnings so active hazards float to the top
+      const sortedWarnings = [...warningList].sort((a, b) => {
+        const scoreA = a.risk_score || a.hazard_score || 0;
+        const scoreB = b.risk_score || b.hazard_score || 0;
+        const levelWeight = { CRITICAL: 4, WARNING: 3, HIGH: 3, ADVISORY: 2, MODERATE: 2, NORMAL: 1, LOW: 1 };
+        const weightA = levelWeight[String(a.hazard_level || a.alert_level).toUpperCase()] || 1;
+        const weightB = levelWeight[String(b.hazard_level || b.alert_level).toUpperCase()] || 1;
+        
+        if (weightA !== weightB) return weightB - weightA;
+        return scoreB - scoreA;
+      });
+
+      // Map Agent 1 telemetry outputs directly into citizen forecast cards
+      const dynamicBroadcasts = sortedWarnings.map((w, idx) => {
+        const alertLvl = (w.hazard_level || w.alert_level || 'NORMAL').toUpperCase();
         let badgeStyle = 'bg-slate-800 text-slate-400 border-slate-700';
 
-        if (w.hazard_level === 'CRITICAL') {
+        if (alertLvl === 'CRITICAL') {
           badgeStyle = 'bg-red-500/20 text-red-400 border-red-500/30';
-        } else if (w.hazard_level === 'WARNING') {
+        } else if (alertLvl === 'WARNING' || alertLvl === 'HIGH') {
           badgeStyle = 'bg-amber-500/20 text-amber-400 border-amber-500/30';
-        } else if (w.hazard_level === 'ADVISORY') {
+        } else if (alertLvl === 'ADVISORY' || alertLvl === 'MODERATE') {
           badgeStyle = 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-        } else if (w.hazard_level === 'NORMAL') {
+        } else if (alertLvl === 'NORMAL') {
           badgeStyle = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
         }
 
+        const zoneName = w.name || `Zone ${w.zone_id || idx + 1}`;
+
         return {
           id: `warn-${w.zone_id || idx}`,
-          title: `${w.hazard_level || 'INFO'} Alert: Zone ${w.zone_id || 'Unknown'}`,
-          desc: w.alert_message || 'Telemetry within monitored baseline.',
-          level: w.hazard_level || 'NOMINAL',
-          riskScore: w.risk_score,
-          dangerRadius: w.danger_radius_km,
+          title: `${alertLvl} Alert: ${zoneName}`,
+          desc: w.alert_message || (w.metrics ? `Precipitation: ${w.metrics.precipitation_mm || 0}mm/hr. Monitored risk status active.` : 'Telemetry within monitored baseline.'),
+          level: alertLvl,
+          riskScore: (w.risk_score || w.hazard_score || 0).toFixed(2),
+          dangerRadius: w.danger_radius_km || w.radius_km || 1.2,
           time: 'Live Sensor',
           badgeColor: badgeStyle
         };
@@ -138,12 +182,14 @@ export default function Dashboard() {
           <div className="space-y-3">
             {reports.length === 0 ? (
               <div className="p-8 text-center text-slate-500 text-xs">
-                No incidents reported yet. Use the "Report Incident" button above to submit an alert.
+                No incidents reported recently. Use the "Report Incident" button above to submit an alert.
               </div>
             ) : (
               reports.map((report) => {
-                const severity = report.triage?.severity_level || "Under Review";
+                const severity = report.triage?.severity_level || report.userReportedSeverity || "Under Review";
                 const isCritical = severity === "Critical";
+                const timeString = formatReportTime(report.created_at || report.createdAt);
+
                 return (
                   <div
                     key={report.id}
@@ -163,7 +209,7 @@ export default function Dashboard() {
                       <h3 className="font-bold text-sm text-white mt-1">{report.title}</h3>
                       <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{report.description}</p>
                       <p className="text-[11px] text-slate-500 mt-1 font-mono">
-                        📍 {report.latitude?.toFixed(4)}, {report.longitude?.toFixed(4)} • {new Date(report.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        📍 {Number(report.latitude || 19.076).toFixed(4)}, {Number(report.longitude || 72.877).toFixed(4)} • {timeString}
                       </p>
                     </div>
 
@@ -180,12 +226,12 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Right 1 Col: Urgent Local Alerts (Agent 1 Stream) */}
+        {/* Right 1 Col: Agent 1 Early Warning & Hazard Forecast */}
         <div className="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-md p-5 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <h2 className="text-sm font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
-              Live Broadcasts
+              Hazard Forecast & Alerts
             </h2>
             <span className="text-[10px] uppercase text-slate-500 font-mono">Agent 1 Stream</span>
           </div>

@@ -21,18 +21,16 @@ export default defineConfig({
         orientation: 'portrait',
         start_url: '/',
         icons: [
-          {
-            src: 'https://cdn-icons-png.flaticon.com/512/824/824082.png',
-            sizes: '192x192 512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
-          }
-        ]
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
       }
     })
   ],
   server: {
-    host: true,
+    host: '0.0.0.0',
     port: 5173,
     allowedHosts: ['.trycloudflare.com'],
     proxy: {

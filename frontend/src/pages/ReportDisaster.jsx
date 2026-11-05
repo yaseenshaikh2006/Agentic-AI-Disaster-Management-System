@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
   AlertTriangle, 
@@ -7,7 +7,10 @@ import {
   ShieldAlert, 
   CheckCircle2, 
   Loader2, 
-  ArrowLeft 
+  ArrowLeft,
+  Camera,
+  X,
+  Image as ImageIcon
 } from "lucide-react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
@@ -57,13 +60,11 @@ const MUMBAI_GEO_DATABASE = {
 function resolveCoordinates(locationInput) {
   if (!locationInput) return { lat: 19.0760, lng: 72.8777 };
 
-  // Check if user manually entered "lat, lng" numbers
   const coordMatch = locationInput.match(/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/);
   if (coordMatch) {
     return { lat: parseFloat(coordMatch[1]), lng: parseFloat(coordMatch[2]) };
   }
 
-  // Text-based matching
   const cleaned = locationInput.toLowerCase().trim();
   for (const [zone, coords] of Object.entries(MUMBAI_GEO_DATABASE)) {
     if (cleaned.includes(zone)) {
@@ -71,12 +72,12 @@ function resolveCoordinates(locationInput) {
     }
   }
 
-  // Default Central Metro fallback
   return { lat: 19.0760, lng: 72.8777 };
 }
 
 function ReportDisaster() {
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
     disasterType: "Flood",
@@ -86,6 +87,7 @@ function ReportDisaster() {
     contactNumber: ""
   });
 
+  const [imagePreview, setImagePreview] = useState(null);
   const [locating, setLocating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [triageResult, setTriageResult] = useState(null);
@@ -94,6 +96,35 @@ function ReportDisaster() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please select a valid image file (PNG, JPG, JPEG).");
+      return;
+    }
+
+    // Limit client file size to 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image is too large. Please select an image under 5MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleGetCurrentLocation = () => {
@@ -111,7 +142,6 @@ function ReportDisaster() {
       },
       (error) => {
         console.warn("GPS Notice:", error.message);
-        // Fallback for HTTP access: auto-assign local sector
         setFormData((prev) => ({ ...prev, location: "19.1352, 72.8546" }));
         alert("GPS disabled on non-HTTPS network. Populated current active sector coordinates.");
         setLocating(false);
@@ -132,7 +162,7 @@ function ReportDisaster() {
       setSubmitting(true);
       const coords = resolveCoordinates(formData.location);
 
-      // 1. Ingest via Agent 2 (Gemini Triage & Incident Engine)
+      // 1. Ingest via Agent 2 (Gemini Triage & Incident Engine with optional image)
       const triageData = await triageDisasterReport({
         title: `${formData.disasterType} at ${formData.location || "Mumbai Metro"}`,
         description: formData.description,
@@ -140,6 +170,7 @@ function ReportDisaster() {
         longitude: coords.lng,
         contactNumber: formData.contactNumber || "Citizen_Anonymous",
         severity: formData.severity,
+        image_url: imagePreview || null,
       });
 
       setTriageResult(triageData);
@@ -154,6 +185,8 @@ function ReportDisaster() {
           longitude: coords.lng,
           description: formData.description,
           contactNumber: formData.contactNumber || "Anonymous Civilian",
+          image_url: imagePreview || null,
+          has_image_proof: Boolean(imagePreview),
           aiTriage: triageData.triage || triageData,
           status: "OPEN_TRIAGED",
           createdAt: serverTimestamp()
@@ -215,11 +248,22 @@ function ReportDisaster() {
                 </span>
               )}
             </p>
+            {imagePreview && (
+              <div className="pt-2 flex justify-center">
+                <div className="relative rounded-xl overflow-hidden border border-slate-700 w-32 h-24 bg-slate-900">
+                  <img src={imagePreview} alt="Uploaded damage proof" className="w-full h-full object-cover" />
+                  <span className="absolute bottom-1 right-1 bg-black/70 text-[9px] px-1 rounded text-slate-300">
+                    Proof Attached
+                  </span>
+                </div>
+              </div>
+            )}
             <div className="pt-4 flex gap-3 justify-center">
               <button
                 onClick={() => {
                   setSubmitted(false);
                   setTriageResult(null);
+                  handleRemoveImage();
                   setFormData({
                     disasterType: "Flood",
                     severity: "High",
@@ -317,6 +361,56 @@ function ReportDisaster() {
                 onChange={handleChange}
                 className="w-full px-3 py-2.5 rounded-xl bg-slate-900/90 text-white text-sm border border-slate-700/80 focus:outline-none focus:border-red-500 placeholder-slate-500 transition"
               />
+            </div>
+
+            {/* Visual Damage / Image Proof (Optional) */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wide mb-1.5">
+                Visual Damage Proof <span className="text-slate-500 text-[10px]">(Optional - Multimodal AI Triage)</span>
+              </label>
+              
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/png, image/jpeg, image/jpg, image/webp"
+                onChange={handleImageChange}
+                className="hidden"
+                id="damage-proof-upload"
+              />
+
+              {!imagePreview ? (
+                <label
+                  htmlFor="damage-proof-upload"
+                  className="flex items-center justify-center gap-2 p-3 rounded-xl border border-dashed border-slate-700 bg-slate-900/50 hover:bg-slate-900 hover:border-slate-600 text-slate-400 hover:text-slate-200 transition cursor-pointer text-xs"
+                >
+                  <Camera size={16} className="text-orange-400" />
+                  <span>Click to attach photo evidence (JPG, PNG)</span>
+                </label>
+              ) : (
+                <div className="relative rounded-xl border border-slate-700 bg-slate-900/80 p-2.5 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <img 
+                      src={imagePreview} 
+                      alt="Visual damage preview" 
+                      className="w-14 h-14 object-cover rounded-lg border border-slate-800"
+                    />
+                    <div className="text-left">
+                      <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                        <ImageIcon size={12} className="text-emerald-400" /> Visual Proof Attached
+                      </div>
+                      <div className="text-[10px] text-slate-400">Ready for Agent 2 vision assessment</div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-red-950 hover:text-red-400 text-slate-400 transition"
+                    title="Remove Image"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
             </div>
 
             <div>

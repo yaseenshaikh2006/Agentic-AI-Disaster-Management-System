@@ -9,10 +9,10 @@ from app.schemas.models import AgentTriageResult
 # Load environment variables from .env
 load_dotenv()
 
-api_key = os.getenv("GEMINI_API_KEY")
+api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
 
 # Initialize Client explicitly with API key
-client = genai.Client(api_key=api_key)
+client = genai.Client(api_key=api_key) if api_key else None
 
 TRIAGE_SYSTEM_PROMPT = """
 You are an Emergency Operations Center (EOC) Damage Assessment and Triage Agent.
@@ -21,8 +21,8 @@ Analyze the citizen-submitted incident report and output a strictly valid JSON r
 Evaluation guidelines:
 1. severity_level: Must be one of ["Critical", "High", "Moderate", "Low"].
 2. confidence_score: Float between 0.0 and 1.0.
-3. detected_hazards: Array of concise danger tags (e.g., ["flood_inundation", "structural_failure", "downed_power_lines"]).
-4. recommended_assets: Tactical units required (e.g., ["Heavy Water Pump", "NDRF Search and Rescue", "Structural Engineers"]).
+3. detected_hazards: Array of concise danger tags (e.g., ["flood_inundation", "structural_failure", "medical_trauma", "cyclone_winds"]).
+4. recommended_assets: Tactical units required (e.g., ["Advanced Life Support Ambulance", "Inflatable Rescue Boat", "NDRF Search and Rescue"]).
 5. action_summary: Brief 1-2 sentence military/tactical instruction for first responders.
 
 Return ONLY a JSON object matching this structure:
@@ -43,11 +43,14 @@ async def assess_incident(title: str, description: str, image_url: str = None) -
         prompt_content += f"\nVisual Evidence Source: {image_url}"
 
     try:
+        if not client:
+            raise ValueError("GEMINI_API_KEY not configured in environment")
+
         loop = asyncio.get_running_loop()
 
         def _call_gemini():
             return client.models.generate_content(
-                model="gemini-3.6-flash",
+                model="gemini-2.5-flash",
                 contents=prompt_content,
                 config=types.GenerateContentConfig(
                     system_instruction=TRIAGE_SYSTEM_PROMPT,
@@ -67,32 +70,56 @@ async def assess_incident(title: str, description: str, image_url: str = None) -
 
     except Exception as e:
         print(f"[Agent 2 Resilient Fallback Activated]: {e}")
-        desc_lower = description.lower() if description else ""
+        # Search across both title and description so incident categories are recognized
+        full_text = f"{title or ''} {description or ''}".lower()
 
-        if any(w in desc_lower for w in ["flood", "water", "waterlogging", "submerged", "drown", "drainage"]):
-            fallback_severity = "High"
-            conf = 0.89
-            hazards = ["water_ingress", "localized_flooding", "submerged_obstacles"]
-            assets = ["Inflatable Rescue Boat", "High-Clearance Evacuation Vehicles"]
-            instruction = "Dispatch drainage pump units and aquatic rescue teams to establish water diversion and perimeter safety."
-        elif any(w in desc_lower for w in ["fire", "blaze", "smoke", "explosion"]):
+        # 1. Medical Emergencies & Cardiac Trauma
+        if any(w in full_text for w in ["medical", "cardiac", "heart", "stroke", "casualty", "injured", "blood", "trauma", "doctor", "ambulance", "arrest", "lightning"]):
+            fallback_severity = "Critical" if any(w in full_text for w in ["arrest", "unconscious", "dying", "huge casualty", "dead", "kids", "children"]) else "High"
+            conf = 0.94 if image_url else 0.88
+            hazards = ["medical_trauma", "cardiac_emergency", "mass_casualty_risk"]
+            assets = ["Advanced Life Support Ambulance", "Paramedic Rapid Response Unit", "Trauma Triage Team"]
+            instruction = "Dispatch immediate emergency medical teams with defibrillators and establish priority hospital transit corridors."
+
+        # 2. Cyclones, Gale Winds & Storms
+        elif any(w in full_text for w in ["cyclone", "storm", "gale", "squall", "wind", "roof", "gust"]):
+            fallback_severity = "Critical" if any(w in full_text for w in ["trapped", "collapse", "huge"]) else "High"
+            conf = 0.91 if image_url else 0.85
+            hazards = ["extreme_wind_hazard", "coastal_surge", "flying_debris"]
+            assets = ["Civil Protection Debris Clearing Unit", "Mobile Feeding Vans", "Emergency Power Restoration Crew"]
+            instruction = "Deploy storm relief teams with emergency rations, tree-clearing squads, and temporary shelter provisions."
+
+        # 3. Fire, Blaze & Smoke
+        elif any(w in full_text for w in ["fire", "blaze", "smoke", "explosion", "burn"]):
             fallback_severity = "Critical"
             conf = 0.94
             hazards = ["thermal_threat", "smoke_inhalation", "structural_compromise"]
-            assets = ["Fire & Rescue Battalion", "EMS High-Priority Unit"]
+            assets = ["Fire & Rescue Battalion", "EMS High-Priority Unit", "Hydraulic Platform Tender"]
             instruction = "Deploy fire suppression engines immediately and secure a 500m evacuation perimeter."
-        elif any(w in desc_lower for w in ["electric", "wire", "pole", "power", "grid"]):
+
+        # 4. Structural Collapses & Rubble
+        elif any(w in full_text for w in ["collapse", "building", "debris", "cracks", "rubble", "fracture", "fall"]):
+            fallback_severity = "Critical" if any(w in full_text for w in ["trapped", "kids", "buried", "people"]) else "High"
+            conf = 0.92 if image_url else 0.82
+            hazards = ["structural_instability", "crush_hazard", "confined_space_entrapment"]
+            assets = ["Shoring & Stabilization Squad", "Canine Search & Rescue", "Heavy Excavator Unit"]
+            instruction = "Deploy acoustic sensors and shoring squads to stabilize structural columns and extricate trapped civilians."
+
+        # 5. Electrical Hazard & Downed Lines
+        elif any(w in full_text for w in ["electric", "wire", "pole", "power", "grid", "shock"]):
             fallback_severity = "Moderate"
             conf = 0.85
             hazards = ["power_outage", "fallen_lines", "electrical_short_risk"]
             assets = ["Utility Grid Repair Crew", "Mobile Power Generator"]
             instruction = "Isolate local electrical grid feeder and dispatch utility technicians for emergency line repair."
+
+        # 6. Floods & Water Inundation (Default Urban Calamity)
         else:
-            fallback_severity = "High" if ("crack" in desc_lower or "storm" in desc_lower) else "Moderate"
-            conf = 0.80
-            hazards = ["structural_stress", "localized_disruption"]
-            assets = ["First Responder Recon Unit", "Civil Protection Team"]
-            instruction = "Deploy rapid reconnaissance team to verify site stability and assist nearby civilians."
+            fallback_severity = "Critical" if any(w in full_text for w in ["drown", "submerged", "trapped", "huge casualty", "neck"]) else "High"
+            conf = 0.92 if image_url else 0.89
+            hazards = ["water_ingress", "localized_flooding", "submerged_obstacles"]
+            assets = ["Inflatable Rescue Boat", "High-Clearance Evacuation Vehicles", "Heavy Water Pump"]
+            instruction = "Dispatch drainage pump units and aquatic rescue teams to establish water diversion and perimeter safety."
 
         return AgentTriageResult(
             severity_level=fallback_severity,
@@ -100,5 +127,5 @@ async def assess_incident(title: str, description: str, image_url: str = None) -
             detected_hazards=hazards,
             recommended_assets=assets,
             action_summary=instruction
-        ) 
+        )
     
